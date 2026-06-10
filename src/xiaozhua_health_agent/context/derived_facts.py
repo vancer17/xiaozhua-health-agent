@@ -15,6 +15,8 @@ from xiaozhua_health_agent.context.text_matchers import (
     breed_matches_brachycephalic,
     notes_indicate_exercise_context,
     reports_open_mouth_breathing,
+    reports_slow_recovery,
+    reports_stress_context,
     signal_reasons_indicate_exercise_context,
     user_text_says_normal,
 )
@@ -47,6 +49,10 @@ DERIVED_FACT_JSON_NAMES: dict[str, str] = {
     "severeRestingResp": "severe_resting_resp",
     "hasRestingTachycardia": "has_resting_tachycardia",
     "hasRestingTachypnea": "has_resting_tachypnea",
+    "maxSignalRiskAtMostNormal": "max_signal_risk_at_most_normal",
+    "hasStressContext": "has_stress_context",
+    "hasSlowRecoveryContext": "has_slow_recovery_context",
+    "hasChronicConditions": "has_chronic_conditions",
 }
 
 
@@ -107,6 +113,19 @@ def compute_derived_facts(
         has_exercise_context=has_exercise_context,
         thresholds=thresholds,
     )
+    max_signal_risk_at_most_normal = _compute_max_signal_risk_at_most_normal(
+        max_signal_risk,
+    )
+    has_stress_context = reports_stress_context(
+        text=user_report.text,
+        symptoms=user_report.symptoms,
+        notes=fact_sheet.context.notes,
+    )
+    has_slow_recovery_context = reports_slow_recovery(
+        text=user_report.text,
+        symptoms=user_report.symptoms,
+    )
+    has_chronic_conditions = bool(fact_sheet.profile.chronic_conditions)
 
     return DerivedFacts(
         is_resting=is_resting,
@@ -125,7 +144,24 @@ def compute_derived_facts(
         severe_resting_resp=severe_resting_resp,
         has_resting_tachycardia=has_resting_tachycardia,
         has_resting_tachypnea=has_resting_tachypnea,
+        max_signal_risk_at_most_normal=max_signal_risk_at_most_normal,
+        has_stress_context=has_stress_context,
+        has_slow_recovery_context=has_slow_recovery_context,
+        has_chronic_conditions=has_chronic_conditions,
     )
+
+
+def _compute_max_signal_risk_at_most_normal(
+    max_signal_risk: MaxSignalRiskLiteral,
+) -> bool:
+    """计算 ``max_signal_risk_at_most_normal``。
+
+    :param max_signal_risk: signals 最高风险档。
+    :type max_signal_risk: MaxSignalRiskLiteral
+    :returns: 无信号或最高档为 normal 时为 ``True``。
+    :rtype: bool
+    """
+    return max_signal_risk is None or max_signal_risk == "normal"
 
 
 def get_derived_fact_by_json_name(

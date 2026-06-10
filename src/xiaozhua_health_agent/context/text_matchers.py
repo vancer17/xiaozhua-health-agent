@@ -44,6 +44,29 @@ EXERCISE_CONTEXT_REASON_KEYWORDS: tuple[str, ...] = (
 OPEN_MOUTH_BREATHING_PHRASE: str = "张口呼吸"
 """用户报告张口呼吸的匹配短语。"""
 
+STRESS_CONTEXT_PHRASES: tuple[str, ...] = (
+    "环境",
+    "紧张",
+    "客人",
+    "应激",
+)
+"""压力/环境变化情境短语（``has_stress_context``）。"""
+
+SLOW_RECOVERY_PHRASES: tuple[str, ...] = (
+    "恢复慢",
+    "睡眠差",
+    "睡得不好",
+    "睡得差",
+)
+"""恢复慢/睡眠差报告短语（``has_slow_recovery_context``）。"""
+
+MEDICATION_NOTE_PHRASES: tuple[str, ...] = (
+    "用药",
+    "正在用药",
+    "服药",
+)
+"""情境备注中的用药相关短语（CTX-04 mentionsAdd）。"""
+
 
 def _normalize_text(value: str) -> str:
     """裁剪并压缩空白，便于子串匹配。
@@ -135,6 +158,60 @@ def reports_open_mouth_breathing(
     if text_contains_any_phrase(text, (OPEN_MOUTH_BREATHING_PHRASE,)):
         return True
     return texts_contain_any_phrase(symptoms, (OPEN_MOUTH_BREATHING_PHRASE,))
+
+
+def reports_stress_context(
+    *,
+    text: str,
+    symptoms: Iterable[str],
+    notes: Iterable[str],
+) -> bool:
+    """判断是否存在环境/压力相关上下文。
+
+    :param text: 用户自由文本。
+    :type text: str
+    :param symptoms: 结构化症状列表。
+    :type symptoms: Iterable[str]
+    :param notes: 情境备注列表。
+    :type notes: Iterable[str]
+    :returns: 命中压力/环境短语时为 ``True``。
+    :rtype: bool
+    """
+    if texts_contain_any_phrase(notes, STRESS_CONTEXT_PHRASES):
+        return True
+    if texts_contain_any_phrase(symptoms, STRESS_CONTEXT_PHRASES):
+        return True
+    return text_contains_any_phrase(text, STRESS_CONTEXT_PHRASES)
+
+
+def reports_slow_recovery(
+    *,
+    text: str,
+    symptoms: Iterable[str],
+) -> bool:
+    """判断用户是否报告恢复慢或睡眠差。
+
+    :param text: 用户自由文本。
+    :type text: str
+    :param symptoms: 结构化症状列表。
+    :type symptoms: Iterable[str]
+    :returns: 命中恢复/睡眠相关短语时为 ``True``。
+    :rtype: bool
+    """
+    if texts_contain_any_phrase(symptoms, SLOW_RECOVERY_PHRASES):
+        return True
+    return text_contains_any_phrase(text, SLOW_RECOVERY_PHRASES)
+
+
+def notes_indicate_medication(notes: Iterable[str]) -> bool:
+    """判断情境备注是否提及用药。
+
+    :param notes: 情境备注列表。
+    :type notes: Iterable[str]
+    :returns: 命中用药短语时为 ``True``。
+    :rtype: bool
+    """
+    return texts_contain_any_phrase(notes, MEDICATION_NOTE_PHRASES)
 
 
 def breed_matches_brachycephalic(breed: str | None) -> bool:
