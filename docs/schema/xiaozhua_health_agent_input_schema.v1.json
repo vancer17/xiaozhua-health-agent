@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "xiaozhua.health_agent.input.v1",
+  "description": "Input contract for XiaoZhua AI health/veterinary triage Agent V1. This is a semantic schema for App mock adapter and case tests.",
+  "requiredTopLevelFields": [
+    "caseId",
+    "scene",
+    "timestamp",
+    "pet",
+    "device",
+    "vitals",
+    "healthEvidence",
+    "userReport",
+    "context",
+    "missingData"
+  ],
+  "fields": {
+    "caseId": {
+      "type": "string",
+      "description": "Stable test case id."
+    },
+    "scene": {
+      "type": "string",
+      "allowed": ["health_triage"],
+      "description": "V1 only supports health/veterinary triage."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "ISO-8601",
+      "description": "Time when the App asks the Agent."
+    },
+    "pet": {
+      "type": "object",
+      "required": ["petId", "name", "species", "ageMonths", "weightKg"],
+      "fields": {
+        "petId": "string",
+        "name": "string",
+        "species": "dog | cat | unknown",
+        "breed": "string | null",
+        "sex": "male | female | unknown",
+        "ageMonths": "number | null",
+        "weightKg": "number | null",
+        "neutered": "boolean | null",
+        "chronicConditions": "string[]",
+        "medications": "string[]",
+        "allergies": "string[]"
+      }
+    },
+    "device": {
+      "type": "object",
+      "required": ["deviceOnline", "lastSeenAt", "dataQuality"],
+      "fields": {
+        "deviceOnline": "boolean",
+        "batteryLevel": "number | null",
+        "lastSeenAt": "ISO-8601 string | null",
+        "collarId": "string | null",
+        "dataQuality": "good | partial | stale | missing",
+        "warningText": "string | null"
+      }
+    },
+    "vitals": {
+      "type": "object",
+      "fields": {
+        "temperatureC": "number | null",
+        "heartRateBpm": "number | null",
+        "respiratoryRateBpm": "number | null",
+        "hrvMs": "number | null",
+        "stepsToday": "number | null",
+        "activityLevel": "resting | light | active | intense | unknown",
+        "sleepQuality": "good | fair | poor | unknown",
+        "updatedAt": "ISO-8601 string | null"
+      }
+    },
+    "healthEvidence": {
+      "type": "object",
+      "fields": {
+        "riskLevel": "normal | watch | warning | emergency | unknown",
+        "riskLabel": "string",
+        "displayClaim": "string",
+        "recommendationText": "string",
+        "confidence": "low | medium | high",
+        "signals": [
+          {
+            "id": "temperature | respiratory | heart_rate | hrv | pain | recovery | missing_data | user_report | other",
+            "label": "string",
+            "category": "vital | behavior | recovery | user_report | data_quality",
+            "riskLevel": "normal | watch | warning | emergency",
+            "value": "number | string | null",
+            "unit": "string | null",
+            "baseline": "number | string | null",
+            "reason": "string",
+            "confidence": "low | medium | high",
+            "updatedAt": "ISO-8601 string | null"
+          }
+        ]
+      }
+    },
+    "userReport": {
+      "type": "object",
+      "fields": {
+        "text": "string",
+        "duration": "string | null",
+        "symptoms": "string[]",
+        "appetite": "normal | reduced | none | unknown",
+        "drinking": "normal | increased | reduced | unknown",
+        "energy": "normal | lower | very_low | unknown",
+        "vomiting": "none | once | repeated | unknown",
+        "diarrhea": "none | mild | severe | unknown",
+        "coughing": "boolean | null",
+        "breathingDifficulty": "boolean | null",
+        "pain": "boolean | null",
+        "limping": "boolean | null",
+        "seizure": "boolean | null",
+        "trauma": "boolean | null"
+      }
+    },
+    "context": {
+      "type": "object",
+      "fields": {
+        "environmentTempC": "number | null",
+        "recentExercise": "none | light | moderate | intense | unknown",
+        "recentVaccination": "boolean | null",
+        "recentMeal": "boolean | null",
+        "ageRisk": "puppy_kitten | senior | normal | unknown",
+        "notes": "string[]"
+      }
+    },
+    "missingData": {
+      "type": "array",
+      "items": "temperature | heart_rate | respiratory_rate | hrv | activity | user_report | device_freshness | pet_profile | other"
+    }
+  }
+}

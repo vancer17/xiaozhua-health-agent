@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "xiaozhua.health_agent.output.v1",
+  "description": "Expected output contract for XiaoZhua AI health/veterinary triage Agent V1.",
+  "requiredTopLevelFields": [
+    "riskLevel",
+    "scene",
+    "title",
+    "summary",
+    "evidence",
+    "recommendation",
+    "whenToSeeVet",
+    "missingData",
+    "confidence",
+    "safetyNotice",
+    "primaryAction"
+  ],
+  "fields": {
+    "riskLevel": {
+      "type": "string",
+      "allowed": ["normal", "watch", "warning", "emergency"]
+    },
+    "scene": {
+      "type": "string",
+      "allowed": ["health_triage"]
+    },
+    "title": {
+      "type": "string",
+      "description": "Short title for App card."
+    },
+    "summary": {
+      "type": "string",
+      "description": "User-facing explanation."
+    },
+    "evidence": {
+      "type": "array",
+      "items": "string",
+      "description": "Evidence used by the Agent. Must not invent data."
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "Next step recommendation."
+    },
+    "whenToSeeVet": {
+      "type": "string",
+      "description": "Clear escalation condition."
+    },
+    "missingData": {
+      "type": "array",
+      "items": "string"
+    },
+    "confidence": {
+      "type": "string",
+      "allowed": ["low", "medium", "high"]
+    },
+    "safetyNotice": {
+      "type": "string",
+      "description": "Medical safety boundary."
+    },
+    "primaryAction": {
+      "type": "object",
+      "fields": {
+        "label": "string",
+        "route": "string | null"
+      }
+    },
+    "secondaryAction": {
+      "type": "object | null",
+      "fields": {
+        "label": "string",
+        "route": "string | null"
+      }
+    }
+  },
+  "forbiddenOutputPatterns": [
+    "确诊为",
+    "一定没事",
+    "不用看医生",
+    "无需就医",
+    "保证",
+    "百分百"
+  ]
+}
