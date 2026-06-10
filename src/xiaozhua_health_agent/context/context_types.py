@@ -113,6 +113,18 @@ class DerivedFacts(BaseModel):
     has_resting_tachypnea: bool = Field(
         description="安静非运动窗口内呼吸维度客观异常。",
     )
+    max_signal_risk_at_most_normal: bool = Field(
+        description="上游 signals 最高风险不高于 normal（无信号视为满足）。",
+    )
+    has_stress_context: bool = Field(
+        description="存在环境变化或用户报告紧张等压力上下文。",
+    )
+    has_slow_recovery_context: bool = Field(
+        description="用户报告恢复慢或睡眠差（症状或自由文本）。",
+    )
+    has_chronic_conditions: bool = Field(
+        description="宠物档案中存在至少一条慢性病史。",
+    )
 
 
 # ---------------------------------------------------------------------------
