@@ -1,0 +1,29 @@
+[project]
+name = "xiaozhua-health-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.136.3",
+    "jsonschema>=4.26.0",
+    "pydantic-settings>=2.14.1",
+    "python-json-logger>=4.1.0",
+    "uvicorn[standard]>=0.49.0",
+]
+
+[project.scripts]
+xiaozhua-health-agent = "xiaozhua_health_agent:main"
+
+[build-system]
+requires = ["uv_build>=0.11.19,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.1.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.16",
+]
