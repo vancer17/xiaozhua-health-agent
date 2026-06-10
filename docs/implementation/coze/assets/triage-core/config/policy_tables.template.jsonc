@@ -1,0 +1,518 @@
+/*
+ * ============================================================================
+ * 文件：policy_tables.template.jsonc
+ * 路径：docs/implementation/coze/assets/triage-core/config/policy_tables.template.jsonc
+ * ============================================================================
+ *
+ * 作用：
+ *   步骤 ② TriageCore 的 **PolicyTables 数据真源**。
+ *   在 ConfidenceResolver 之后执行 PolicyTablesResolve(primaryFlag, finalRiskLevel)，
+ *   为 TriageCoreResult 填充 forcedMentions、forbiddenThemes、safetyNoticeRequired、
+ *   primaryActionHint；供 ③ LLM 填槽、④ ValidateContent、⑤ MergeOutput 消费。
+ *
+ * 不负责：
+ *   - 规则 when / then（→ rules_*.py 或 rules/*.yaml，Code-First）
+ *   - DerivedFacts 计算（→ derived_facts.py）
+ *   - fusion / confidence 算法（→ fusion.py / confidence.py）
+ *   - evidence 路径映射（→ evidence_by_flag.template.jsonc，独立制品）
+ *   - 文案 copy 骨架（→ kb-tpl/templates.v1.json）
+ *   - 禁止词机检正则全文（→ kb-forbid；本文件 forbiddenThemes 为语义主题约束）
+ *
+ * 配套文档：
+ *   - ../kb-rule-emit-spec.md §四（字段语义与表体内容真源说明）
+ *   - ../triage-core-spec.md §6.3（policyTables section）
+ *   - ../case-rule-mapping.md §五（20 case SN / mustMention 验收）
+ *   - ../pipeline-design.md §4.7b（PolicyTablesResolve 时机）
+ *
+ * 部署：
+ *   1. 替换全部 {{PLACEHOLDER}}
+ *   2. 删除本注释块及所有 // 行注释（若目标环境不支持 JSONC）
+ *   3. 保存为 policy_tables.v1.json（纯 JSON）供引擎 load
+ *   4. 可选：与 rules 代码一并 compile 嵌入 triage-core.v1.json 的 policyTables section
+ *   5. 修改表体后 bump meta.bundleVersion，并跑 20 case 回归（尤其 mustMention / SN 列）
+ *
+ * 维护原则：
+ *   - primaryFlag 枚举须与 rules 代码 then.primaryFlag、KB-TPL 查表键 **完全一致**
+ *   - CTX-09a / CTX-09b 共用 POST_EXERCISE，不靠别名 flag
+ *   - 改 forcedMentions 优先改本文件，勿在 KB-TPL 重复维护 mentionHints
+ *   - globalForbiddenPatterns 须与 output_schema forbiddenOutputPatterns、KB-FORBID 对齐
+ * ============================================================================
+ */
+
+ {
+    // ── 制品元信息 ──────────────────────────────────────────────────────────
+    "meta": {
+      "description": "PolicyTables 制品全局标识；Loader 用于版本 pin 与 CI 对齐检查",
+      "schemaVersion": "{{POLICY_TABLES_SCHEMA_VERSION}}",
+      "bundleVersion": "{{BUNDLE_VERSION}}",
+      "bundleId": "{{BUNDLE_ID}}",
+      "locale": "{{LOCALE}}",
+      "casesDataset": "{{CASE_DATASET_VERSION}}",
+      "casesDatasetPath": "{{CASE_DATASET_PATH}}",
+      "compatEmitSpecVersion": "{{EMIT_SPEC_VERSION}}",
+      "updatedAt": "{{UPDATED_AT_ISO8601}}",
+      "primaryFlagCount": 20,
+      "notes": "表体内容以 kb-rule-emit-spec.md §4.1～4.4 为准；本文件为 Code-First 独立 JSON 制品"
+    },
+  
+    // ── 全局禁止主题（语义层，供 ③ Prompt 与 ④ ForbiddenPatternMatcher 共用）──
+    "globalForbiddenPatterns": {
+      "description": "全 primaryFlag 通用的禁止表述主题；与 docs/schema output_schema forbiddenOutputPatterns 及 KB-FORBID 对齐。ValidateContent 应同时检查字面禁止词与本节主题。",
+      "patterns": [
+        {
+          "id": "GFB-01",
+          "description": "确诊性结论；模型不得输出疾病名称作为确定诊断",
+          "themes": ["确诊为", "就是", "肯定是", "一定是"]
+        },
+        {
+          "id": "GFB-02",
+          "description": "保证性/绝对性安慰；医疗分诊禁止承诺结果",
+          "themes": ["一定没事", "保证", "百分百", "不用担心", "肯定能好"]
+        },
+        {
+          "id": "GFB-03",
+          "description": "否定就医必要性；任何风险等级均不得弱化就医建议",
+          "themes": ["不用看医生", "无需就医", "不必就医", "不需要看兽医"]
+        },
+        {
+          "id": "GFB-04",
+          "description": "紧急场景下的错误降级语气",
+          "themes": ["继续观察即可", "先等等", "明天再看", "不着急"]
+        }
+      ]
+    },
+  
+    // ── 四张 PolicyTables（② PolicyTablesResolve 查表主体）────────────────
+    "policyTables": {
+  
+      "description": "PolicyTables 根对象；ResolvePrimaryFlag 选定 primaryFlag 且 ConfidenceResolver 完成后，按 primaryFlag（及必要时 finalRiskLevel）查下列四表",
+  
+      // 4.1 ForcedMentionsByFlag ───────────────────────────────────────────
+      "forcedMentionsByFlag": {
+        "description": "按 primaryFlag 提供的默认 forcedMentions[]。③ LLM 与 ④ ForcedMentionChecker 应确保 summary/recommendation 等字段覆盖这些主题（可同义改写，见 KB-SYN）。规则层 mentionsAdd（如 CTX-04 用药）在本表默认值之上追加去重合并。",
+        "entries": {
+          "NORMAL_DAILY": {
+            "description": "CTX-15 日常健康；case #1 normal_dog_daily_check",
+            "ruleIds": ["CTX-15"],
+            "caseIds": ["normal_dog_daily_check"],
+            "mentions": ["状态平稳", "日常观察"]
+          },
+          "POST_EXERCISE": {
+            "description": "CTX-09a/09b 运动后轻度异常；#2/#5 共用同一 flag，区分靠 ruleHits id",
+            "ruleIds": ["CTX-09a", "CTX-09b"],
+            "caseIds": ["mild_fever_after_exercise", "heart_rate_high_after_play"],
+            "mentions": ["休息", "补水", "复查"]
+          },
+          "FEVER_RESTING": {
+            "description": "CTX-01 安静态发热/高热；含原 POP-01 绝对兜底分支",
+            "ruleIds": ["CTX-01"],
+            "caseIds": ["high_fever_resting"],
+            "mentions": ["体温", "联系兽医", "精神状态"]
+          },
+          "RESP_RESTING": {
+            "description": "CTX-02 安静态呼吸率异常；含原 POP-02 兜底；case #4 非 emergency",
+            "ruleIds": ["CTX-02"],
+            "caseIds": ["respiratory_rate_high_resting"],
+            "mentions": ["呼吸", "安静状态", "联系兽医"]
+          },
+          "HR_RESTING_CHRONIC": {
+            "description": "CTX-03 慢病+安静心率异常；与 CTX-04 呼吸维度分流",
+            "ruleIds": ["CTX-03"],
+            "caseIds": ["heart_rate_high_resting_warning"],
+            "mentions": ["安静状态", "既往史", "联系兽医"]
+          },
+          "CHRONIC_HEART_RESP": {
+            "description": "CTX-04 心脏病史+安静呼吸偏快；用药合规由 rules mentionsAdd 追加",
+            "ruleIds": ["CTX-04"],
+            "caseIds": ["chronic_heart_resp_warning"],
+            "mentions": ["心脏病史", "安静呼吸", "联系兽医"]
+          },
+          "USER_DEVICE_CONFLICT": {
+            "description": "CTX-05 用户描述正常但设备安静态发热；Resolver H 排除 → 通常 M",
+            "ruleIds": ["CTX-05"],
+            "caseIds": ["conflict_user_normal_sensor_fever"],
+            "mentions": ["用户描述", "体温", "复查"]
+          },
+          "REPEATED_VOMITING": {
+            "description": "CTX-06 反复呕吐；rules 可追加「不要自行用药」",
+            "ruleIds": ["CTX-06"],
+            "caseIds": ["persistent_vomiting_warning"],
+            "mentions": ["反复呕吐", "联系兽医", "不要自行用药"]
+          },
+          "SENIOR_DECLINE": {
+            "description": "CTX-07 老年+精神食欲下降+慢病史",
+            "ruleIds": ["CTX-07"],
+            "caseIds": ["senior_cat_low_energy"],
+            "mentions": ["老年", "食欲", "联系兽医"]
+          },
+          "PUPPY_FEVER": {
+            "description": "CTX-08 幼犬发热+精神差；年龄加权 warning",
+            "ruleIds": ["CTX-08"],
+            "caseIds": ["puppy_fever_high_risk"],
+            "mentions": ["幼犬", "体温", "联系兽医"]
+          },
+          "HRV_STRESS": {
+            "description": "CTX-10 HRV 偏低+环境/压力；safetyNoticeRequired=false",
+            "ruleIds": ["CTX-10"],
+            "caseIds": ["hrv_stress_watch"],
+            "mentions": ["压力", "睡眠", "环境变化"]
+          },
+          "LIMPING_PAIN": {
+            "description": "CTX-11 跛行/疼痛；可与 partial dataQuality 共存（case #8）",
+            "ruleIds": ["CTX-11"],
+            "caseIds": ["limping_pain_watch"],
+            "mentions": ["减少运动", "观察步态", "持续或加重"]
+          },
+          "SLOW_RECOVERY": {
+            "description": "CTX-12 恢复慢+睡眠差；safetyNoticeRequired=false",
+            "ruleIds": ["CTX-12"],
+            "caseIds": ["recovery_slow_watch"],
+            "mentions": ["恢复", "睡眠", "降低活动强度"]
+          },
+          "MILD_DIARRHEA": {
+            "description": "CTX-13 轻度腹泻+精神尚可",
+            "ruleIds": ["CTX-13"],
+            "caseIds": ["mild_diarrhea_watch"],
+            "mentions": ["腹泻", "观察", "精神"]
+          },
+          "POST_VACCINE": {
+            "description": "CTX-14 疫苗后疲倦",
+            "ruleIds": ["CTX-14"],
+            "caseIds": ["post_vaccine_tired_watch"],
+            "mentions": ["疫苗", "观察", "食欲"]
+          },
+          "DATA_MISSING": {
+            "description": "DQ-01 设备离线/核心体征全缺；禁止判 normal",
+            "ruleIds": ["DQ-01"],
+            "caseIds": ["missing_vitals"],
+            "mentions": ["数据不足", "设备", "不能判断"]
+          },
+          "DATA_STALE": {
+            "description": "DQ-02 数据过期；禁止「当前正常」叙事",
+            "ruleIds": ["DQ-02"],
+            "caseIds": ["stale_device_data"],
+            "mentions": ["数据过期", "设备在线", "不能依据旧数据判断"]
+          },
+          "EMERGENCY_SEIZURE": {
+            "description": "EMG-01 用户报告抽搐；case #13 走 H′ confidence",
+            "ruleIds": ["EMG-01"],
+            "caseIds": ["emergency_seizure"],
+            "mentions": ["抽搐", "立即", "兽医"]
+          },
+          "EMERGENCY_RESPIRATORY": {
+            "description": "EMG-02/04 呼吸困难紧急；优先于 CTX-02 叙事",
+            "ruleIds": ["EMG-02", "EMG-04"],
+            "caseIds": ["emergency_breathing_difficulty"],
+            "mentions": ["立即", "兽医", "就医"]
+          },
+          "EMERGENCY_TRAUMA": {
+            "description": "EMG-03 严重创伤（扩展 case，V1 回归可选）",
+            "ruleIds": ["EMG-03"],
+            "caseIds": [],
+            "mentions": ["立即", "兽医", "就医"]
+          }
+        }
+      },
+  
+      // 4.2 ForbiddenByFlag ─────────────────────────────────────────────────
+      "forbiddenByFlag": {
+        "description": "按 primaryFlag 提供的 forbiddenThemes[]。③ LLM System 与 ④ ValidateContent 禁止输出与这些主题相关的结论性/保证性/错误引导表述。各 flag 主题 **叠加** globalForbiddenPatterns，取并集。",
+        "entries": {
+          "NORMAL_DAILY": {
+            "description": "正常态避免过度医疗化，但仍不得确诊",
+            "themes": ["确诊", "立即就医"]
+          },
+          "POST_EXERCISE": {
+            "description": "运动后 watch；不得把暂时生理升高说成疾病确诊",
+            "themes": ["确诊"]
+          },
+          "FEVER_RESTING": {
+            "description": "安静高热 warning；禁止轻描淡写",
+            "themes": ["确诊", "一定没事"]
+          },
+          "RESP_RESTING": {
+            "description": "安静呼吸异常 warning",
+            "themes": ["确诊", "不用看医生"]
+          },
+          "HR_RESTING_CHRONIC": {
+            "description": "慢病+安静心率 warning",
+            "themes": ["确诊"]
+          },
+          "CHRONIC_HEART_RESP": {
+            "description": "慢病+呼吸 warning；用药合规",
+            "themes": ["确诊", "自行调整药量", "自行停药", "加量", "减量"]
+          },
+          "USER_DEVICE_CONFLICT": {
+            "description": "用户/设备冲突；不得采信用户「没事」而忽略设备",
+            "themes": ["确诊", "忽略设备数据", "以用户感受为准", "设备不可信"]
+          },
+          "REPEATED_VOMITING": {
+            "description": "反复呕吐 warning",
+            "themes": ["确诊", "一定没事"]
+          },
+          "SENIOR_DECLINE": {
+            "description": "老年精神食欲差；不得归因为正常老化而延误就医",
+            "themes": ["确诊", "只是正常老化", "老了都这样"]
+          },
+          "PUPPY_FEVER": {
+            "description": "幼犬发热；不得建议仅继续观察",
+            "themes": ["确诊", "继续观察即可", "再等等"]
+          },
+          "HRV_STRESS": {
+            "description": "压力/恢复 watch",
+            "themes": ["确诊"]
+          },
+          "LIMPING_PAIN": {
+            "description": "跛行/疼痛 watch",
+            "themes": ["确诊"]
+          },
+          "SLOW_RECOVERY": {
+            "description": "恢复慢 watch",
+            "themes": ["确诊"]
+          },
+          "MILD_DIARRHEA": {
+            "description": "轻度腹泻 watch",
+            "themes": ["确诊"]
+          },
+          "POST_VACCINE": {
+            "description": "疫苗后疲倦 watch",
+            "themes": ["确诊"]
+          },
+          "DATA_MISSING": {
+            "description": "数据缺失；严禁在缺数据时声称健康",
+            "themes": ["确诊", "正常", "一定没事", "目前健康", "一切正常"]
+          },
+          "DATA_STALE": {
+            "description": "数据过期；严禁依据旧数据断言当前状态",
+            "themes": ["确诊", "当前正常", "一切正常", "现在很正常", "目前正常"]
+          },
+          "EMERGENCY_SEIZURE": {
+            "description": "抽搐 emergency",
+            "themes": ["确诊", "继续观察即可", "不用看医生", "先观察", "不着急"]
+          },
+          "EMERGENCY_RESPIRATORY": {
+            "description": "呼吸困难 emergency",
+            "themes": ["确诊", "继续观察即可", "不用看医生", "先观察", "不着急"]
+          },
+          "EMERGENCY_TRAUMA": {
+            "description": "创伤 emergency",
+            "themes": ["确诊", "继续观察即可", "不用看医生", "先观察", "不着急"]
+          }
+        }
+      },
+  
+      // 4.3 SafetyByFlag ───────────────────────────────────────────────────
+      "safetyByFlag": {
+        "description": "按 primaryFlag 决定 safetyNoticeRequired（bool）。为 true 时 ③ 必须填充 safetyNotice（可来自 kb-tpl/safety-notices 片段）；④ SafetyNoticeEnforcer 校验非空。与 case-rule-mapping §五 SN 列一致：仅 HRV_STRESS、SLOW_RECOVERY、DATA_MISSING、DATA_STALE 为 false。",
+        "default": {
+          "description": "未显式列出的 primaryFlag 默认值（不应触发；20 flag 均已枚举）",
+          "safetyNoticeRequired": true
+        },
+        "entries": {
+          "NORMAL_DAILY": {
+            "description": "case #1；expected.safetyNoticeRequired=false",
+            "safetyNoticeRequired": false
+          },
+          "POST_EXERCISE": {
+            "description": "case #2/#5；watch 但仍需非诊断边界说明",
+            "safetyNoticeRequired": true
+          },
+          "FEVER_RESTING": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "RESP_RESTING": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "HR_RESTING_CHRONIC": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "CHRONIC_HEART_RESP": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "USER_DEVICE_CONFLICT": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "REPEATED_VOMITING": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "SENIOR_DECLINE": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "PUPPY_FEVER": {
+            "description": "warning",
+            "safetyNoticeRequired": true
+          },
+          "HRV_STRESS": {
+            "description": "case #7；expected.safetyNoticeRequired=false",
+            "safetyNoticeRequired": false
+          },
+          "LIMPING_PAIN": {
+            "description": "watch；case #8 expected=true",
+            "safetyNoticeRequired": true
+          },
+          "SLOW_RECOVERY": {
+            "description": "case #9；expected.safetyNoticeRequired=false",
+            "safetyNoticeRequired": false
+          },
+          "MILD_DIARRHEA": {
+            "description": "watch",
+            "safetyNoticeRequired": true
+          },
+          "POST_VACCINE": {
+            "description": "watch",
+            "safetyNoticeRequired": true
+          },
+          "DATA_MISSING": {
+            "description": "case #10；expected.safetyNoticeRequired=false",
+            "safetyNoticeRequired": false
+          },
+          "DATA_STALE": {
+            "description": "case #19；expected.safetyNoticeRequired=false",
+            "safetyNoticeRequired": false
+          },
+          "EMERGENCY_SEIZURE": {
+            "description": "emergency",
+            "safetyNoticeRequired": true
+          },
+          "EMERGENCY_RESPIRATORY": {
+            "description": "emergency",
+            "safetyNoticeRequired": true
+          },
+          "EMERGENCY_TRAUMA": {
+            "description": "emergency（扩展）",
+            "safetyNoticeRequired": true
+          }
+        }
+      },
+  
+      // 4.4 ActionByFlagRisk ────────────────────────────────────────────────
+      "actionByFlagRisk": {
+        "description": "按 primaryFlag 提供 primaryActionHint 枚举；⑤ MergeOutput 经 KB-ACTION 映射为 output_schema.primaryAction { label, route }。多数 warning CTX 为 contact_vet；emergency 为 emergency_now；数据问题为 check_device；可观察 watch 为 rest_observe。可选 riskLevelOverrides 用于同 flag 不同 risk 的细调（V1 20 case 通常不需要）。",
+        "hintEnumDocs": {
+          "description": "primaryActionHint 允许值说明；KB-ACTION 表负责 hint → label/route",
+          "emergency_now": "立即联系兽医/就近就医（emergency）",
+          "contact_vet": "建议联系兽医评估（warning 为主）",
+          "check_device": "检查设备佩戴、电量与数据同步（DATA_*）",
+          "rest_observe": "休息观察、补水、后续复查（normal / 运动后 watch）"
+        },
+        "entries": {
+          "NORMAL_DAILY": {
+            "description": "日常正常",
+            "defaultHint": "rest_observe"
+          },
+          "POST_EXERCISE": {
+            "description": "运动后 watch",
+            "defaultHint": "rest_observe"
+          },
+          "FEVER_RESTING": {
+            "description": "安静发热 warning",
+            "defaultHint": "contact_vet"
+          },
+          "RESP_RESTING": {
+            "description": "安静呼吸 warning",
+            "defaultHint": "contact_vet"
+          },
+          "HR_RESTING_CHRONIC": {
+            "description": "慢病+安静心率 warning",
+            "defaultHint": "contact_vet"
+          },
+          "CHRONIC_HEART_RESP": {
+            "description": "慢病+安静呼吸 warning",
+            "defaultHint": "contact_vet"
+          },
+          "USER_DEVICE_CONFLICT": {
+            "description": "用户/设备冲突 warning",
+            "defaultHint": "contact_vet"
+          },
+          "REPEATED_VOMITING": {
+            "description": "反复呕吐 warning",
+            "defaultHint": "contact_vet"
+          },
+          "SENIOR_DECLINE": {
+            "description": "老年精神食欲差 warning",
+            "defaultHint": "contact_vet"
+          },
+          "PUPPY_FEVER": {
+            "description": "幼犬发热 warning",
+            "defaultHint": "contact_vet"
+          },
+          "HRV_STRESS": {
+            "description": "压力/恢复 watch；可先观察",
+            "defaultHint": "rest_observe"
+          },
+          "LIMPING_PAIN": {
+            "description": "跛行/疼痛 watch；持续加重需就医",
+            "defaultHint": "contact_vet"
+          },
+          "SLOW_RECOVERY": {
+            "description": "恢复慢 watch",
+            "defaultHint": "rest_observe"
+          },
+          "MILD_DIARRHEA": {
+            "description": "轻度腹泻 watch",
+            "defaultHint": "contact_vet"
+          },
+          "POST_VACCINE": {
+            "description": "疫苗后 watch",
+            "defaultHint": "rest_observe"
+          },
+          "DATA_MISSING": {
+            "description": "数据缺失 watch/low conf",
+            "defaultHint": "check_device"
+          },
+          "DATA_STALE": {
+            "description": "数据过期 watch/low conf",
+            "defaultHint": "check_device"
+          },
+          "EMERGENCY_SEIZURE": {
+            "description": "抽搐 emergency",
+            "defaultHint": "emergency_now"
+          },
+          "EMERGENCY_RESPIRATORY": {
+            "description": "呼吸困难 emergency",
+            "defaultHint": "emergency_now"
+          },
+          "EMERGENCY_TRAUMA": {
+            "description": "创伤 emergency（扩展）",
+            "defaultHint": "emergency_now"
+          }
+        }
+      }
+    },
+  
+    // ── PolicyTablesResolve 运行时契约（供 policy_tables.py 实现对照）────────
+    "resolveContract": {
+      "description": "声明 PolicyTablesResolve 的输入、输出与合并顺序；Python 引擎须与此一致，Coze 代码节点同理",
+      "inputs": {
+        "description": "Resolve 所需输入字段",
+        "primaryFlag": "ResolvePrimaryFlag 选定的唯一主键",
+        "finalRiskLevel": "fusion 产出：normal | watch | warning | emergency",
+        "mentionsAddFromRules": "各命中 rules[].then.mentionsAdd 的去重并集（可为空数组）"
+      },
+      "outputs": {
+        "description": "写入 TriageCoreResult 的字段",
+        "forcedMentions": "forcedMentionsByFlag[primaryFlag].mentions ∪ mentionsAddFromRules（去重保序）",
+        "forbiddenThemes": "forbiddenByFlag[primaryFlag].themes ∪ globalForbiddenPatterns（主题级并集）",
+        "safetyNoticeRequired": "safetyByFlag.entries[primaryFlag].safetyNoticeRequired",
+        "primaryActionHint": "actionByFlagRisk.entries[primaryFlag].defaultHint（或 riskLevelOverrides 命中值）"
+      },
+      "executionOrder": {
+        "description": "在 ② 管道中的位置；详见 triage-core-spec.md §七",
+        "after": ["ConfidenceResolver"],
+        "before": ["missingDataUser", "EvidenceBuilder", "TriageCoreResultAssembly"]
+      },
+      "validationChecks": {
+        "description": "Loader 启动时建议执行的静态校验",
+        "requireAllPrimaryFlags": "forcedMentionsByFlag / forbiddenByFlag / safetyByFlag / actionByFlagRisk 四表 key 集合必须完全一致（20 个）",
+        "requireKnownHints": "所有 defaultHint 必须在 hintEnumDocs 定义的枚举内",
+        "crossRefRules": "entries.*.ruleIds 中的 id 须在 rules 代码或 triage-core rules[] 中存在"
+      }
+    }
+  }
