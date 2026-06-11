@@ -633,6 +633,7 @@ xiaozhua-health-agent/
 - `docs/implementation/coze/case-rule-mapping.md`
 - `docs/implementation/coze/kb-tpl-template-spec.md`
 - `docs/plans/coze-workflow-dev-plan.md`
+- `docs/delivery/tongyi-llm-api-compliance-report.md`（通义千问 LLM API 合规比对）
 
 ---
 
