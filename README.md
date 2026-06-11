@@ -18,6 +18,7 @@
 | 运维探针 `/internal/healthz`、`/internal/readyz` | 已实现 |
 | 智能对话 `POST /intelligent` | V1 静态占位（不执行分诊管道） |
 | Docker 镜像交付 | 已实现 |
+| Docker Compose 编排（API + 评测 profile） | 已实现 |
 | Session / 鉴权 / ConfigRelease | V1 未实现 |
 
 ### 分诊管道（五模块）
@@ -34,49 +35,74 @@
 
 ## 环境要求
 
-- **Python** ≥ 3.13
-- **[uv](https://docs.astral.sh/uv/)**（依赖与虚拟环境管理）
-- **Docker**（可选，用于容器化部署）
+| 场景 | 依赖 |
+|------|------|
+| **本地开发** | Python ≥ 3.13、[uv](https://docs.astral.sh/uv/) |
+| **容器交付 / 部署** | Docker、Docker Compose v2 |
 
 ---
 
 ## 快速开始
 
-### 1. 克隆与安装
-
 ```bash
 git clone <repository-url>
 cd xiaozhua-health-agent
-
 cp .env.example .env
-# 按需编辑 .env（本地开发通常保持 LLM_ENABLED=false 即可）
-
-uv sync --all-groups
+# 按需编辑 .env（本地/容器通常保持 XIAOZHUA_PIPELINE_LLM_ENABLED=false）
 ```
 
-### 2. 启动 HTTP 服务
+任选一种方式启动服务。
+
+### 方式 A：Docker Compose（推荐交付与联调）
 
 ```bash
+docker compose up --build -d
+curl -sf http://localhost:8080/internal/readyz
+```
+
+- 默认使用镜像内嵌的 `assets/`（与 CI 构建一致，可复现）
+- 运行时配置从 `.env` 注入；`XIAOZHUA_PROJECT_ROOT=/app` 已在 Compose 中固定
+- 宿主机端口映射为 `${HEALTH_API_PUBLISH_PORT:-8080}:8080`（见 `compose.env.example`）
+
+**本地改知识资产、免 rebuild**（可选）：
+
+```bash
+cp compose.override.example.yml compose.override.yml
+# 若 8080 已被占用，在 .env 中设置 HEALTH_API_PUBLISH_PORT=18080
+docker compose up --build
+```
+
+`compose.override.yml` 会将 `./assets` 只读挂载到容器，改模板后 `docker compose restart health-agent` 即可。
+
+### 方式 B：本地 uv 开发
+
+```bash
+uv sync --all-groups
 uv run xiaozhua-health-agent
 ```
 
 默认监听 `http://0.0.0.0:8080`。
 
-- **OpenAPI 文档**：`http://localhost:8080/docs`
-- **就绪探针**：`http://localhost:8080/internal/readyz`
-- **存活探针**：`http://localhost:8080/internal/healthz`
-
-### 3. 调用分诊 API
+### 调用分诊 API
 
 请求体为 `docs/cases/health_triage_cases.v1.json` 中任意 case 的 `input` 字段（符合 `input_schema.v1`）。
 
 ```bash
+# 端口按实际映射调整（Compose 默认 8080；override 示例常用 18080）
 curl -sS -X POST http://localhost:8080/health \
   -H 'Content-Type: application/json' \
   -d @<(jq '.cases[0].input' docs/cases/health_triage_cases.v1.json)
 ```
 
 成功时返回 200 及完整 `output_schema.v1` 字段（`riskLevel`、`title`、`summary`、`evidence`、`recommendation`、`safetyNotice` 等）。
+
+### 端点速查
+
+| 用途 | URL（默认端口 8080） |
+|------|---------------------|
+| OpenAPI 文档 | `http://localhost:8080/docs` |
+| 就绪探针 | `http://localhost:8080/internal/readyz` |
+| 存活探针 | `http://localhost:8080/internal/healthz` |
 
 ---
 
@@ -114,13 +140,25 @@ curl -sS -X POST http://localhost:8080/health \
 | `XIAOZHUA_KB_SYN_PATH` | `assets/kb-syn/kb-syn.v1.json` |
 | `XIAOZHUA_KB_ACTION_PATH` | `assets/kb-action/actions.v1.json` |
 
-### LLM（前缀 `QWEN_`，仅 `LLM_ENABLED=true` 时需要）
+### LLM（前缀 `QWEN_`，仅 `XIAOZHUA_PIPELINE_LLM_ENABLED=true` 时需要）
 
 | 变量 | 说明 |
 |------|------|
 | `QWEN_API_KEY` | 通义千问 API Key（**勿提交到仓库**） |
 | `QWEN_BASE_URL` | 默认 DashScope 兼容模式端点 |
 | `QWEN_MODEL` | 默认 `qwen-plus` |
+
+### Docker Compose 插值（可选，写入 `.env`）
+
+与 `.env.example` 中的应用配置可合并；也可参考 `compose.env.example`。
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `IMAGE_TAG` | `local` | 镜像 tag |
+| `HEALTH_API_PUBLISH_PORT` | `8080` | 宿主机映射端口 |
+| `EVAL_MODE` | `milestone-b` | `eval` profile 批跑模式 |
+
+**配置分工**：运行时开关与密钥走 `.env`；知识资产在**交付环境**使用镜像内嵌 `assets/`，**本地开发**可通过 `compose.override.yml` 挂载覆盖。
 
 ---
 
@@ -146,17 +184,42 @@ curl -sS -X POST http://localhost:8080/health \
 
 ---
 
-## Docker
+## Docker 与 Compose
 
-### 构建
+### 镜像构建
 
 ```bash
 docker build -t xiaozhua-health-agent:local .
+# 或
+docker compose build
 ```
 
-采用 **两阶段构建**（`python:3.13-slim-bookworm` + `uv`）：运行镜像内含应用虚拟环境与 `assets/` 知识资产，以非 root 用户运行。
+采用 **两阶段构建**（`python:3.13-slim-bookworm` + `uv`）：
 
-### 运行
+- 运行镜像含 `/app/.venv` 应用环境与 `/app/assets/` 知识资产
+- 非 root 用户（uid `10001`）运行
+- 内置 `HEALTHCHECK` 探测 `/internal/readyz`
+
+### Compose 服务
+
+| 服务 | Profile | 说明 |
+|------|---------|------|
+| `health-agent` | 默认 | 长期运行 API；`restart: unless-stopped` |
+| `eval-batch` | `eval` | 一次性 20 case 批跑；挂载 `docs/cases`，报告写入 `logs/eval/report.json` |
+
+```bash
+# 启动 API（后台）
+docker compose up --build -d
+
+# 查看日志 / 停止
+docker compose logs -f health-agent
+docker compose down
+
+# 容器内批跑（无需本地 uv）
+docker compose --profile eval run --rm eval-batch
+```
+
+### 仅用 docker run（不经过 Compose）
 
 ```bash
 docker run --rm -p 18080:8080 \
@@ -165,13 +228,18 @@ docker run --rm -p 18080:8080 \
   xiaozhua-health-agent:local
 ```
 
-访问：`http://localhost:18080/internal/readyz`、`http://localhost:18080/health`。
+访问：`http://localhost:18080/internal/readyz`、`http://localhost:18080/docs`。
 
-**端口冲突**：若宿主机 `8080` 已被占用，将左侧映射端口改为 `18080`（或任意空闲端口），例如 `-p 18080:8080`。容器内应用仍监听 `8080`。
+### 路径与资产策略
 
-### 镜像内路径说明
+| 路径 | 说明 |
+|------|------|
+| `/app/.venv` | Python 虚拟环境（应用包安装于此） |
+| `/app/assets/` | 镜像内知识资产（交付默认真源） |
+| `XIAOZHUA_PROJECT_ROOT=/app` | 制品相对路径的基准；Dockerfile / Compose 已预设 |
 
-包安装于 `/app/.venv`，知识资产位于 `/app/assets/`。必须通过 `XIAOZHUA_PROJECT_ROOT=/app` 解析制品路径；该变量已在 Dockerfile 中预设，手动 `docker run` 时请勿省略。
+**交付 / 生产**：使用镜像内嵌 `assets/`，保证与 CI 构建、Milestone B 验收一致。  
+**本地开发**：可复制 `compose.override.example.yml` → `compose.override.yml`，只读挂载 `./assets`，改 JSON 后重启容器即可，无需 rebuild。
 
 ---
 
@@ -187,6 +255,8 @@ uv run pytest
 
 ### 20 case 批跑
 
+**本地（uv）**：
+
 ```bash
 # 仅 riskLevel 硬门槛（② 分诊核）
 uv run python -m xiaozhua_health_agent.eval.batch_runner --mode risk-only
@@ -199,6 +269,16 @@ uv run python -m xiaozhua_health_agent.eval.batch_runner --mode full-output
 
 # LLM 文案批跑（需 QWEN_API_KEY）
 uv run python -m xiaozhua_health_agent.eval.batch_runner --mode copy-llm
+```
+
+**容器（Compose `eval` profile）**：
+
+```bash
+# 默认 milestone-b；报告 logs/eval/report.json
+docker compose --profile eval run --rm eval-batch
+
+# 切换模式（在 .env 中设置 EVAL_MODE=full-output 等）
+docker compose --profile eval run --rm eval-batch
 ```
 
 ### 硬门槛 vs 软门槛
@@ -239,6 +319,10 @@ xiaozhua-health-agent/
 ├── docs/                        # 契约、case、架构与实现设计文档
 ├── tests/                       # 单元与集成测试
 ├── Dockerfile
+├── docker-compose.yml           # 默认交付编排（health-agent + eval profile）
+├── compose.override.example.yml # 本地开发挂载 assets 示例
+├── compose.env.example          # Compose 插值变量示例
+├── .dockerignore
 ├── pyproject.toml
 └── uv.lock
 ```
