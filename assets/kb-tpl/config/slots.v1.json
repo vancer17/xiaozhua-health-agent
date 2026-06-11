@@ -1,0 +1,145 @@
+{
+  "meta": {
+    "schemaVersion": "xiaozhua.kb_tpl.slots.v1",
+    "bundleVersion": "1.0.0",
+    "description": "KB-TPL 全局槽位注册表：从 FactSheet / TriageCoreResult 机械填值，LLM 不得自造。"
+  },
+  "slots": {
+    "petName": {
+      "source": "factSheet",
+      "path": "pet.name",
+      "required": false,
+      "missingBehavior": "usePlaceholder",
+      "placeholder": "宠物"
+    },
+    "speciesLabel": {
+      "source": "factSheet",
+      "path": "pet.species",
+      "required": false,
+      "missingBehavior": "useGeneric",
+      "generic": "宠物",
+      "enumMap": {
+        "dog": "狗狗",
+        "cat": "猫咪",
+        "unknown": "宠物"
+      }
+    },
+    "temperature": {
+      "source": "factSheet",
+      "path": "vitals.temperatureC",
+      "required": false,
+      "missingBehavior": "omit",
+      "format": "{value}°C"
+    },
+    "heartRate": {
+      "source": "factSheet",
+      "path": "vitals.heartRateBpm",
+      "required": false,
+      "missingBehavior": "omit",
+      "format": "{value}次/分"
+    },
+    "respiratoryRate": {
+      "source": "factSheet",
+      "path": "vitals.respiratoryRateBpm",
+      "required": false,
+      "missingBehavior": "omit",
+      "format": "{value}次/分"
+    },
+    "activityLevel": {
+      "source": "factSheet",
+      "path": "vitals.activityLevel",
+      "required": false,
+      "missingBehavior": "omit",
+      "enumMap": {
+        "resting": "休息",
+        "light": "轻度活动",
+        "active": "活动",
+        "intense": "剧烈活动",
+        "unknown": "未知活动水平"
+      }
+    },
+    "exerciseContext": {
+      "source": "factSheet",
+      "path": "context.recentExercise",
+      "required": false,
+      "missingBehavior": "usePhrase",
+      "phrase": "近期活动",
+      "enumMap": {
+        "none": "无近期运动",
+        "light": "轻度活动",
+        "moderate": "中度活动",
+        "intense": "刚剧烈运动",
+        "unknown": "近期活动"
+      }
+    },
+    "exerciseNote": {
+      "source": "factSheet",
+      "path": "context.notes",
+      "required": false,
+      "missingBehavior": "omit",
+      "type": "notesMatch",
+      "matchPatterns": ["刚运动", "刚玩耍", "运动后", "玩耍后"]
+    },
+    "userReportText": {
+      "source": "factSheet",
+      "path": "userReport.text",
+      "required": false,
+      "missingBehavior": "omit",
+      "maxLength": 80
+    },
+    "chronicSummary": {
+      "source": "factSheet",
+      "path": "pet.chronicConditions",
+      "required": false,
+      "missingBehavior": "omit",
+      "type": "array",
+      "conditionLabels": {
+        "heart_murmur_history": "心脏杂音既往史",
+        "heart_disease": "心脏病史",
+        "kidney_history": "肾脏问题既往史",
+        "brachycephalic": "短鼻品种背景"
+      },
+      "joinSeparator": "、"
+    },
+    "deviceQuality": {
+      "source": "factSheet",
+      "path": "device.dataQuality",
+      "required": false,
+      "missingBehavior": "useGeneric",
+      "generic": "数据质量未知",
+      "enumMap": {
+        "good": "数据良好",
+        "partial": "数据部分可用",
+        "stale": "数据已过期",
+        "missing": "数据缺失"
+      }
+    },
+    "deviceWarning": {
+      "source": "factSheet",
+      "path": "device.warningText",
+      "required": false,
+      "missingBehavior": "omit"
+    },
+    "lastSeenAt": {
+      "source": "factSheet",
+      "path": "device.lastSeenAt",
+      "required": false,
+      "missingBehavior": "omit",
+      "format": "relativeTime"
+    },
+    "missingList": {
+      "source": "triageCore",
+      "path": "missingDataUser",
+      "required": false,
+      "missingBehavior": "omit",
+      "type": "array",
+      "joinSeparator": "；"
+    },
+    "primaryVital": {
+      "source": "derived",
+      "required": false,
+      "missingBehavior": "omit",
+      "description": "由 binding.summarySlotPriority 在 resolver 中解析，非直接路径读取"
+    }
+  }
+}

@@ -43,6 +43,14 @@ from xiaozhua_health_agent.eval.risk_evaluator import (
     make_golden_outputs_from_dataset,
     run_risk_only_evaluation,
 )
+from xiaozhua_health_agent.eval.copy_llm_batch import (
+    CopyLlmBatchConfig,
+    CopyLlmBatchReport,
+    assert_copy_llm_hard_gate,
+    copy_llm_report_to_dict,
+    run_copy_llm_batch,
+    write_copy_llm_batch_report,
+)
 from xiaozhua_health_agent.eval.semantic_evaluator import SemanticEvalOptions
 from xiaozhua_health_agent.paths import default_cases_path
 
@@ -56,15 +64,16 @@ class BatchRunMode(StrEnum):
 
     RISK_ONLY = "risk-only"
     FULL_OUTPUT = "full-output"
+    COPY_LLM = "copy-llm"
 
 
-BatchRunModeLiteral: TypeAlias = Literal["risk-only", "full-output"]
+BatchRunModeLiteral: TypeAlias = Literal["risk-only", "full-output", "copy-llm"]
 
 
 class BatchRunConfig(BaseModel):
     """批跑 CLI / 脚本配置。
 
-    :param mode: 运行模式（``risk-only`` / ``full-output``）。
+    :param mode: 运行模式（``risk-only`` / ``full-output`` / ``copy-llm``）。
     :param cases_path: mock case JSON 文件路径。
     :param outputs_json_path: 可选；预置输出映射 JSON（caseId → output dict）。
     :param use_golden_outputs: 为 true 时用 expected 构造 golden stub（评测器自检）。
@@ -77,7 +86,7 @@ class BatchRunConfig(BaseModel):
 
     mode: BatchRunModeLiteral = Field(
         default=BatchRunMode.RISK_ONLY.value,
-        description="批跑模式：risk-only 或 full-output。",
+        description="批跑模式：risk-only、full-output 或 copy-llm。",
     )
     cases_path: Path | None = Field(
         default=None,
@@ -102,6 +111,20 @@ class BatchRunConfig(BaseModel):
     include_warnings_in_report: bool = Field(
         default=True,
         description="文本报告是否附加软警告段（confidence / mustMention）。",
+    )
+    copy_llm_scope: Literal["smoke", "full"] = Field(
+        default="smoke",
+        description="copy-llm 模式范围：smoke（5 边界 case）或 full（20 case）。",
+    )
+    copy_llm_skip_llm: bool = Field(
+        default=False,
+        description="copy-llm 模式是否跳过通义调用（仅管道自检）。",
+    )
+    copy_llm_max_concurrency: int = Field(
+        default=3,
+        ge=1,
+        le=20,
+        description="copy-llm 并发上限。",
     )
 
 
@@ -161,8 +184,8 @@ def run_batch(
     provider: TriageOutputProvider | None = None,
     dataset: HealthTriageDataset | None = None,
     outputs_by_case_id: OutputsByCaseId | None = None,
-) -> RiskEvalReport | FullEvalReport:
-    """按配置执行批跑（``risk-only`` 或 ``full-output``）。
+) -> RiskEvalReport | FullEvalReport | CopyLlmBatchReport:
+    """按配置执行批跑（``risk-only`` / ``full-output`` / ``copy-llm``）。
 
     输出来源优先级：
 
@@ -180,10 +203,13 @@ def run_batch(
     :type dataset: HealthTriageDataset | None
     :param outputs_by_case_id: 可选显式输出映射。
     :type outputs_by_case_id: OutputsByCaseId | None
-    :returns: risk-only 或 full-output 批跑报告。
-    :rtype: RiskEvalReport | FullEvalReport
+    :returns: risk-only、full-output 或 copy-llm 批跑报告。
+    :rtype: RiskEvalReport | FullEvalReport | CopyLlmBatchReport
     """
     resolved_dataset = _resolve_batch_dataset(config, dataset)
+
+    if config.mode == BatchRunMode.COPY_LLM.value:
+        return _run_copy_llm_batch(config, resolved_dataset)
 
     if config.mode == BatchRunMode.FULL_OUTPUT.value:
         return _run_full_output_batch(
@@ -220,6 +246,28 @@ def _resolve_batch_dataset(
         config.cases_path if config.cases_path is not None else default_cases_path()
     )
     return load_health_triage_dataset(cases_path)
+
+
+def _run_copy_llm_batch(
+    config: BatchRunConfig,
+    dataset: HealthTriageDataset,
+) -> CopyLlmBatchReport:
+    """执行 ``copy-llm`` 批跑分支。
+
+    :param config: 批跑配置。
+    :type config: BatchRunConfig
+    :param dataset: mock case 数据集。
+    :type dataset: HealthTriageDataset
+    :returns: copy-llm 批跑报告。
+    :rtype: CopyLlmBatchReport
+    """
+    copy_config = CopyLlmBatchConfig(
+        mode=config.copy_llm_scope,
+        cases_path=config.cases_path,
+        skip_llm=config.copy_llm_skip_llm,
+        max_concurrency=config.copy_llm_max_concurrency,
+    )
+    return run_copy_llm_batch(copy_config, dataset=dataset)
 
 
 def _run_risk_only_batch(
@@ -626,11 +674,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="xiaozhua-eval-batch",
-        description="小爪健康分诊 Agent — 20 case 批跑（risk-only / full-output）。",
+        description="小爪健康分诊 Agent — 20 case 批跑（risk-only / full-output / copy-llm）。",
     )
     parser.add_argument(
         "--mode",
-        choices=["risk-only", "full-output"],
+        choices=["risk-only", "full-output", "copy-llm"],
         default="risk-only",
         help="批跑模式（默认 risk-only）。",
     )
@@ -697,6 +745,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="文本报告不输出软警告段。",
     )
+    parser.add_argument(
+        "--copy-llm-scope",
+        choices=["smoke", "full"],
+        default="smoke",
+        help="copy-llm 范围：smoke（5 边界 case）或 full（20 case）。",
+    )
+    parser.add_argument(
+        "--copy-llm-skip",
+        action="store_true",
+        help="copy-llm 模式跳过通义千问调用（管道自检）。",
+    )
+    parser.add_argument(
+        "--copy-llm-concurrency",
+        type=int,
+        default=3,
+        help="copy-llm 并发上限（默认 3）。",
+    )
     return parser
 
 
@@ -730,6 +795,9 @@ def config_from_namespace(namespace: argparse.Namespace) -> BatchRunConfig:
         eval_options=eval_options,
         full_eval_options=full_eval_options,
         include_warnings_in_report=not namespace.no_warnings,
+        copy_llm_scope=namespace.copy_llm_scope,
+        copy_llm_skip_llm=namespace.copy_llm_skip,
+        copy_llm_max_concurrency=namespace.copy_llm_concurrency,
     )
 
 
@@ -749,7 +817,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     report = run_batch(config)
 
-    if isinstance(report, FullEvalReport):
+    if isinstance(report, CopyLlmBatchReport):
+        write_copy_llm_batch_report(
+            report,
+            include_per_case=not namespace.no_per_case,
+        )
+    elif isinstance(report, FullEvalReport):
         write_full_eval_report(
             report,
             include_per_case=not namespace.no_per_case,
@@ -763,13 +836,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     if namespace.json_report is not None:
-        namespace.json_report.write_text(
-            report.model_dump(by_alias=True, mode="json"),
-            encoding="utf-8",
-        )
+        if isinstance(report, CopyLlmBatchReport):
+            namespace.json_report.write_text(
+                json.dumps(
+                    copy_llm_report_to_dict(report),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+        else:
+            namespace.json_report.write_text(
+                report.model_dump(by_alias=True, mode="json"),
+                encoding="utf-8",
+            )
 
     try:
-        if isinstance(report, FullEvalReport):
+        if isinstance(report, CopyLlmBatchReport):
+            assert_copy_llm_hard_gate(report)
+        elif isinstance(report, FullEvalReport):
             assert_full_output_hard_gate(report)
         else:
             assert_risk_only_hard_gate(report)

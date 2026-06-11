@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "schemaVersion": "xiaozhua.kb_action.v1",
+    "bundleVersion": "1.0.0",
+    "description": "primaryActionHint → label/route 映射。hint 真源在 triage-core ActionByFlagRisk。"
+  },
+  "actions": {
+    "emergency_now": {
+      "label": "立即联系兽医/就医",
+      "route": "contact_vet"
+    },
+    "contact_vet": {
+      "label": "联系兽医",
+      "route": "contact_vet"
+    },
+    "check_device": {
+      "label": "检查设备",
+      "route": "check_device"
+    },
+    "rest_observe": {
+      "label": "休息观察",
+      "route": "rest_observe"
+    }
+  },
+  "secondaryActions": {
+    "record_symptom": {
+      "label": "记录症状",
+      "route": "record_symptom"
+    }
+  },
+  "secondaryByPrimaryFlag": {
+    "DATA_MISSING": "record_symptom",
+    "DATA_STALE": "record_symptom"
+  }
+}

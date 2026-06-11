@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "schemaVersion": "xiaozhua.kb_tpl.fallback.v1",
+    "bundleVersion": "1.0.0",
+    "description": "templateId 未命中时的按 risk 兜底文案（⑤ 模板兜底与 ③-1 resolver 共用）。"
+  },
+  "fallbacks": {
+    "normal": {
+      "titlePattern": "当前未见明显异常",
+      "summaryOutline": [
+        "当前监测与描述未见明显异常信号",
+        "建议保持日常观察"
+      ],
+      "recommendationTemplate": "保持日常观察。",
+      "whenToSeeVetTemplate": "有异常变化请联系兽医。",
+      "toneProfileId": "TONE-NORMAL",
+      "evidenceStyle": "bullets_as_is"
+    },
+    "watch": {
+      "titlePattern": "建议继续观察",
+      "summaryOutline": [
+        "当前存在一些需要关注的信号",
+        "建议持续观察精神、食欲与活动"
+      ],
+      "recommendationTemplate": "请留意精神、食欲与活动变化。",
+      "whenToSeeVetTemplate": "症状加重请联系兽医。",
+      "toneProfileId": "TONE-WATCH",
+      "evidenceStyle": "bullets_as_is"
+    },
+    "warning": {
+      "titlePattern": "建议联系兽医",
+      "summaryOutline": [
+        "当前信号建议进一步关注",
+        "建议尽快联系兽医评估"
+      ],
+      "recommendationTemplate": "当前信号建议尽快联系兽医进一步评估。",
+      "whenToSeeVetTemplate": "若精神变差或症状加重，请尽快就医。",
+      "toneProfileId": "TONE-WARNING",
+      "evidenceStyle": "bullets_as_is"
+    },
+    "emergency": {
+      "titlePattern": "请立即就医",
+      "summaryOutline": [
+        "当前情况属于紧急状况",
+        "请立即联系兽医或就近就医"
+      ],
+      "recommendationTemplate": "请立即联系兽医或前往宠物医院。",
+      "whenToSeeVetTemplate": "立即就医，不要等待。",
+      "toneProfileId": "TONE-EMERGENCY",
+      "evidenceStyle": "bullets_as_is"
+    },
+    "DEFAULT": {
+      "titlePattern": "健康分诊提示",
+      "summaryOutline": [
+        "请根据当前监测与描述综合判断",
+        "如有疑虑请联系兽医"
+      ],
+      "recommendationTemplate": "请根据宠物当前状态采取适当措施。",
+      "whenToSeeVetTemplate": "如有疑虑请联系兽医。",
+      "toneProfileId": "TONE-WATCH",
+      "evidenceStyle": "bullets_as_is"
+    }
+  }
+}

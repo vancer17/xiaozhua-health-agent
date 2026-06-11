@@ -13,7 +13,8 @@
 子模块之间（如 ``schema_validator`` → ``case_dataset``）仍使用子模块直引，
 勿从本 ``__init__`` 回引，以免循环导入。
 
-当前覆盖 WP0：Case 加载、Schema 校验、risk-only 评测、语义评测、full-output 组合批跑。
+当前覆盖 WP0：Case 加载、Schema 校验、risk-only 评测、语义评测、full-output 组合批跑、
+copy-llm 通义文案批跑、action 矩阵 fixture 与批跑评测。
 """
 
 from __future__ import annotations
@@ -28,6 +29,41 @@ from xiaozhua_health_agent.eval.case_dataset import (
     load_health_triage_dataset,
     load_health_triage_dataset_from_json,
 )
+from xiaozhua_health_agent.eval.action_matrix import (
+    ACTION_MATRIX_SCHEMA_VERSION,
+    DEFAULT_PIPELINE_PROFILE,
+    ActionMatrixEntry,
+    ActionMatrixFixture,
+    ActionMatrixLoadError,
+    ActionMatrixMeta,
+    ActionMatrixSources,
+    ActionMatrixSummary,
+    derive_action_matrix_entry,
+    derive_action_matrix_entries,
+    entries_match_derived,
+    load_action_matrix,
+    load_action_matrix_from_json,
+    load_validated_action_matrix,
+    validate_action_matrix_against_dataset,
+    validate_action_matrix_against_kb_action,
+    validate_action_matrix_against_policy_tables,
+    validate_action_matrix_fixture,
+    validate_action_matrix_summary,
+)
+from xiaozhua_health_agent.eval.action_matrix_evaluator import (
+    ActionMatrixEvalRecord,
+    ActionMatrixEvalReport,
+    ActionMatrixViolation,
+    ActionMatrixViolationCode,
+    assert_action_matrix_hard_gate,
+    assert_fixture_matches_derived_pipeline,
+    evaluate_action_matrix_for_case,
+    evaluate_action_matrix_for_case_pipeline,
+    format_action_matrix_record_line,
+    format_action_matrix_report_summary,
+    run_action_matrix_evaluation,
+    run_mechanical_merge_for_case,
+)
 from xiaozhua_health_agent.eval.schema_validator import (
     INPUT_SCHEMA_VERSION,
     OUTPUT_SCHEMA_VERSION,
@@ -35,6 +71,11 @@ from xiaozhua_health_agent.eval.schema_validator import (
     validate_all_case_inputs,
     validate_input,
     validate_output,
+)
+from xiaozhua_health_agent.eval.structure_validator import (
+    DRAFT_STRUCTURE_SCHEMA_VERSION,
+    validate_draft_structure,
+    validate_structure,
 )
 from xiaozhua_health_agent.eval.risk_eval_types import (
     ConfidenceCheckMode,
@@ -95,6 +136,22 @@ from xiaozhua_health_agent.eval.risk_evaluator import (
     make_golden_outputs_from_dataset,
     run_risk_only_evaluation,
     run_risk_only_evaluation_with_provider,
+)
+from xiaozhua_health_agent.eval.copy_llm_batch import (
+    COPY_LLM_SMOKE_CASE_IDS,
+    CopyLlmBatchConfig,
+    CopyLlmBatchMode,
+    CopyLlmBatchModeLiteral,
+    CopyLlmBatchRecord,
+    CopyLlmBatchReport,
+    assert_copy_llm_hard_gate,
+    copy_llm_report_to_dict,
+    format_copy_llm_batch_report,
+    format_copy_llm_record_line,
+    format_copy_llm_report_summary,
+    run_copy_llm_batch,
+    run_copy_llm_batch_async,
+    write_copy_llm_batch_report,
 )
 from xiaozhua_health_agent.eval.batch_runner import (
     BatchRunConfig,
@@ -228,6 +285,11 @@ from xiaozhua_health_agent.eval.semantic_violation import (
     violation_code_from_enum,
 )
 
+from xiaozhua_health_agent.eval.action_consistency_validator import (
+    locked_action_mismatches_to_violations,
+    validate_locked_draft_actions,
+)
+
 run_risk_only_cli = main
 """向后兼容别名；与 ``run_batch_cli`` 相同。"""
 
@@ -248,6 +310,13 @@ __all__ = [
     "validate_output",
     "validate_all_case_inputs",
     "summarize_validation_results",
+    # --- structure_validator：④-A ValidateStructure（DraftCopyJSON）---
+    "DRAFT_STRUCTURE_SCHEMA_VERSION",
+    "validate_structure",
+    "validate_draft_structure",
+    # --- action_consistency_validator：④-B 行动锁定一致性 ---
+    "validate_locked_draft_actions",
+    "locked_action_mismatches_to_violations",
     # --- validation_result：结果与违规类型 ---
     "CaseInputValidationRecord",
     "OutputValidationMode",
@@ -307,6 +376,21 @@ __all__ = [
     "BatchRunConfig",
     "BatchRunMode",
     "BatchRunModeLiteral",
+    # --- copy-llm 批跑 ---
+    "COPY_LLM_SMOKE_CASE_IDS",
+    "CopyLlmBatchConfig",
+    "CopyLlmBatchMode",
+    "CopyLlmBatchModeLiteral",
+    "CopyLlmBatchRecord",
+    "CopyLlmBatchReport",
+    "assert_copy_llm_hard_gate",
+    "copy_llm_report_to_dict",
+    "format_copy_llm_batch_report",
+    "format_copy_llm_record_line",
+    "format_copy_llm_report_summary",
+    "run_copy_llm_batch",
+    "run_copy_llm_batch_async",
+    "write_copy_llm_batch_report",
     "format_risk_eval_record_line",
     "format_risk_eval_report",
     "format_risk_eval_report_summary",
@@ -424,4 +508,37 @@ __all__ = [
     "run_batch_cli",
     "run_risk_only_cli",
     "main",
+    # --- action_matrix ---
+    "ACTION_MATRIX_SCHEMA_VERSION",
+    "DEFAULT_PIPELINE_PROFILE",
+    "ActionMatrixEntry",
+    "ActionMatrixFixture",
+    "ActionMatrixLoadError",
+    "ActionMatrixMeta",
+    "ActionMatrixSources",
+    "ActionMatrixSummary",
+    "derive_action_matrix_entry",
+    "derive_action_matrix_entries",
+    "entries_match_derived",
+    "load_action_matrix",
+    "load_action_matrix_from_json",
+    "load_validated_action_matrix",
+    "validate_action_matrix_against_dataset",
+    "validate_action_matrix_against_kb_action",
+    "validate_action_matrix_against_policy_tables",
+    "validate_action_matrix_fixture",
+    "validate_action_matrix_summary",
+    # --- action_matrix_evaluator ---
+    "ActionMatrixEvalRecord",
+    "ActionMatrixEvalReport",
+    "ActionMatrixViolation",
+    "ActionMatrixViolationCode",
+    "assert_action_matrix_hard_gate",
+    "assert_fixture_matches_derived_pipeline",
+    "evaluate_action_matrix_for_case",
+    "evaluate_action_matrix_for_case_pipeline",
+    "format_action_matrix_record_line",
+    "format_action_matrix_report_summary",
+    "run_action_matrix_evaluation",
+    "run_mechanical_merge_for_case",
 ]

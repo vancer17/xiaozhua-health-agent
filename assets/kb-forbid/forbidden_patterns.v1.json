@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "schemaVersion": "xiaozhua.kb_forbid.v1",
+    "bundleVersion": "1.0.0",
+    "description": "全局禁止表述 pattern（③ Prompt 与 ④ ForbiddenPatternMatcher 共用）。与 output_schema forbiddenOutputPatterns 对齐。"
+  },
+  "schemaPatterns": [
+    "确诊为",
+    "一定没事",
+    "不用看医生",
+    "无需就医",
+    "保证",
+    "百分百"
+  ],
+  "extendedPatterns": [
+    "不用担心",
+    "肯定能好",
+    "就是胃炎",
+    "肯定是感染",
+    "继续观察即可",
+    "先等等",
+    "不必就医",
+    "不需要看兽医",
+    "只是正常老化",
+    "忽略设备数据"
+  ]
+}

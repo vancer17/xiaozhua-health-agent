@@ -1,0 +1,577 @@
+{
+  "meta": {
+    "schemaVersion": "xiaozhua.kb_tpl.templates.v1",
+    "bundleVersion": "1.0.0",
+    "description": "20 条 risk×primaryFlag 文案模板（copy + guidance + binding）。合规约束由 triage-core policyTables 注入。"
+  },
+  "templates": {
+    "normal.NORMAL_DAILY": {
+      "meta": {
+        "templateId": "normal.NORMAL_DAILY",
+        "riskLevel": "normal",
+        "primaryFlag": "NORMAL_DAILY",
+        "bundleVersion": "1.0.0",
+        "name": "正常健康状态",
+        "caseIds": ["normal_dog_daily_check"],
+        "toneProfileId": "TONE-NORMAL",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "{petName}当前健康状态平稳",
+        "summaryOutline": [
+          "当前体征与日常状态未见明显异常",
+          "主人描述与监测数据一致",
+          "建议保持日常观察"
+        ],
+        "recommendationTemplate": "可继续当前作息与饮水习惯，保持适度活动。",
+        "whenToSeeVetTemplate": "若出现精神萎靡、食欲骤降、呕吐、呼吸困难等变化，建议联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "语气轻松但不保证；不要写「绝对健康」或过度保证性结论。"
+      },
+      "binding": {
+        "slots": ["petName", "temperature", "heartRate", "userReportText"]
+      }
+    },
+    "watch.POST_EXERCISE": {
+      "meta": {
+        "templateId": "watch.POST_EXERCISE",
+        "riskLevel": "watch",
+        "primaryFlag": "POST_EXERCISE",
+        "bundleVersion": "1.0.0",
+        "name": "运动后指标偏高",
+        "caseIds": ["mild_fever_after_exercise", "heart_rate_high_after_play"],
+        "toneProfileId": "TONE-WATCH",
+        "evidenceStyle": "bullets_light_polish",
+        "notes": "CTX-09a/09b 共用；#2 突出体温，#5 突出心率，勿暗示心脏病诊断"
+      },
+      "copy": {
+        "titlePattern": "活动后指标偏高，建议休息后复查",
+        "summaryOutline": [
+          "{exerciseContext}后{primaryVital}偏高较常见",
+          "当前整体状态需结合运动情境理解",
+          "休息补水后请复查监测数据"
+        ],
+        "recommendationTemplate": "请先让{petName}在阴凉处休息并补充饮水，安静30～60分钟后再查看指标。",
+        "whenToSeeVetTemplate": "若休息后体温或心率仍偏高，或出现呕吐、精神萎靡、呼吸困难，建议联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "必须点明「运动后」或「活动后」情境；心率偏高时不要暗示心脏病诊断；禁止 emergency 语气。"
+      },
+      "binding": {
+        "slots": ["petName", "exerciseContext", "exerciseNote", "temperature", "heartRate", "activityLevel"],
+        "summarySlotPriority": {
+          "primaryVital": ["temperature", "heartRate"]
+        }
+      }
+    },
+    "warning.FEVER_RESTING": {
+      "meta": {
+        "templateId": "warning.FEVER_RESTING",
+        "riskLevel": "warning",
+        "primaryFlag": "FEVER_RESTING",
+        "bundleVersion": "1.0.0",
+        "name": "安静状态高热",
+        "caseIds": ["high_fever_resting"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "安静状态下体温偏高",
+        "summaryOutline": [
+          "安静时体温{temperature}，高于常见范围",
+          "精神或食欲有所下降",
+          "建议尽快联系兽医评估"
+        ],
+        "recommendationTemplate": "请尽快复查体温，并联系兽医说明当前精神与食欲情况，避免自行用药。",
+        "whenToSeeVetTemplate": "若体温持续偏高、精神变差、拒绝饮水或出现呕吐，请尽快联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "warning 语气；不要写确诊感染或保证性结论。"
+      },
+      "binding": {
+        "slots": ["petName", "temperature", "activityLevel", "userReportText"]
+      }
+    },
+    "warning.RESP_RESTING": {
+      "meta": {
+        "templateId": "warning.RESP_RESTING",
+        "riskLevel": "warning",
+        "primaryFlag": "RESP_RESTING",
+        "bundleVersion": "1.0.0",
+        "name": "安静状态呼吸偏快",
+        "caseIds": ["respiratory_rate_high_resting"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_as_is",
+        "notes": "相对 #12 不得使用 emergency 主导词"
+      },
+      "copy": {
+        "titlePattern": "安静状态下呼吸偏快",
+        "summaryOutline": [
+          "休息时呼吸约{respiratoryRate}，偏快",
+          "您提到呼吸方面不适",
+          "建议持续观察并联系兽医"
+        ],
+        "recommendationTemplate": "请观察是否出现张口呼吸、咳嗽或精神变差；如有加重，联系兽医。",
+        "whenToSeeVetTemplate": "若呼吸持续加快、出现张口呼吸或精神萎靡，请尽快联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "禁止「立即」「紧急」作为主导词；risk 为 warning 非 emergency。"
+      },
+      "binding": {
+        "slots": ["petName", "respiratoryRate", "activityLevel", "userReportText"]
+      }
+    },
+    "warning.HR_RESTING_CHRONIC": {
+      "meta": {
+        "templateId": "warning.HR_RESTING_CHRONIC",
+        "riskLevel": "warning",
+        "primaryFlag": "HR_RESTING_CHRONIC",
+        "bundleVersion": "1.0.0",
+        "name": "安静时心率偏快（慢病背景）",
+        "caseIds": ["heart_rate_high_resting_warning"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "安静时心率偏快，结合既往史需关注",
+        "summaryOutline": [
+          "安静状态下心率{heartRate}偏快",
+          "存在心脏相关既往史",
+          "建议联系兽医进一步评估"
+        ],
+        "recommendationTemplate": "建议联系兽医，说明安静时心率及既往心脏情况，按医嘱随访。",
+        "whenToSeeVetTemplate": "若精神变差、呼吸加快、不愿活动或心率持续偏高，请尽快联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "须体现既往史；不要确诊心脏病。"
+      },
+      "binding": {
+        "slots": ["petName", "heartRate", "chronicSummary", "activityLevel"]
+      }
+    },
+    "warning.CHRONIC_HEART_RESP": {
+      "meta": {
+        "templateId": "warning.CHRONIC_HEART_RESP",
+        "riskLevel": "warning",
+        "primaryFlag": "CHRONIC_HEART_RESP",
+        "bundleVersion": "1.0.0",
+        "name": "心脏病史 + 安静呼吸偏快",
+        "caseIds": ["chronic_heart_resp_warning"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_light_polish",
+        "notes": "用药禁忌由 CTX-04 mentionsAdd 注入 forcedMentions"
+      },
+      "copy": {
+        "titlePattern": "有心脏病史，安静时呼吸偏快",
+        "summaryOutline": [
+          "宠物有心脏病史",
+          "安静时呼吸{respiratoryRate}比平时偏快",
+          "建议联系兽医确认是否需要复查"
+        ],
+        "recommendationTemplate": "请联系兽医反馈当前呼吸频率与精神食欲变化，遵循既有治疗方案。",
+        "whenToSeeVetTemplate": "若呼吸明显加快、精神萎靡或食欲下降加重，请尽快联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "若 forcedMentions 含用药相关表述，须呼应「不要自行调整药量」。"
+      },
+      "binding": {
+        "slots": ["petName", "respiratoryRate", "chronicSummary", "userReportText"]
+      }
+    },
+    "warning.USER_DEVICE_CONFLICT": {
+      "meta": {
+        "templateId": "warning.USER_DEVICE_CONFLICT",
+        "riskLevel": "warning",
+        "primaryFlag": "USER_DEVICE_CONFLICT",
+        "bundleVersion": "1.0.0",
+        "name": "用户描述与设备数据不一致",
+        "caseIds": ["conflict_user_normal_sensor_fever"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "感受与监测不一致，建议复查体温",
+        "summaryOutline": [
+          "您描述宠物状态与平时相近",
+          "设备显示安静时体温{temperature}偏高",
+          "建议复查体温并观察精神"
+        ],
+        "recommendationTemplate": "请结合触摸耳腹温度与精神状态复查，不要仅凭单一感受判断；必要时联系兽医。",
+        "whenToSeeVetTemplate": "若复查仍提示发热或精神食欲变差，建议联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "不否定主人观察，也不否定设备读数；强调「不一致需复查」。"
+      },
+      "binding": {
+        "slots": ["petName", "temperature", "userReportText", "activityLevel"]
+      }
+    },
+    "warning.REPEATED_VOMITING": {
+      "meta": {
+        "templateId": "warning.REPEATED_VOMITING",
+        "riskLevel": "warning",
+        "primaryFlag": "REPEATED_VOMITING",
+        "bundleVersion": "1.0.0",
+        "name": "反复呕吐",
+        "caseIds": ["persistent_vomiting_warning"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "反复呕吐需要关注",
+        "summaryOutline": [
+          "报告反复呕吐",
+          "活动与精神可能受影响",
+          "建议联系兽医并避免自行用药"
+        ],
+        "recommendationTemplate": "请联系兽医说明呕吐频次与持续时间，暂时勿自行给予人用药物。",
+        "whenToSeeVetTemplate": "若呕吐持续、精神萎靡、便血或无法饮水，请尽快联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "须提及联系兽医与勿自行用药；不要写「一定没事」。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    },
+    "warning.SENIOR_DECLINE": {
+      "meta": {
+        "templateId": "warning.SENIOR_DECLINE",
+        "riskLevel": "warning",
+        "primaryFlag": "SENIOR_DECLINE",
+        "bundleVersion": "1.0.0",
+        "name": "老年宠物精神食欲下降",
+        "caseIds": ["senior_cat_low_energy"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "老年宠物精神食欲下降",
+        "summaryOutline": [
+          "老年宠物精神及活动下降",
+          "食欲减退",
+          "结合既往病史建议兽医评估"
+        ],
+        "recommendationTemplate": "建议联系兽医，说明老年阶段的精神、食欲变化及既往病史。",
+        "whenToSeeVetTemplate": "若拒食、饮水明显减少或精神持续萎靡，请尽快联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "不要用「只是正常老化」淡化症状。"
+      },
+      "binding": {
+        "slots": ["petName", "speciesLabel", "chronicSummary", "userReportText"]
+      }
+    },
+    "warning.PUPPY_FEVER": {
+      "meta": {
+        "templateId": "warning.PUPPY_FEVER",
+        "riskLevel": "warning",
+        "primaryFlag": "PUPPY_FEVER",
+        "bundleVersion": "1.0.0",
+        "name": "幼宠发热",
+        "caseIds": ["puppy_fever_high_risk"],
+        "toneProfileId": "TONE-WARNING",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "幼宠发热需格外谨慎",
+        "summaryOutline": [
+          "幼宠体温{temperature}偏高",
+          "精神不佳",
+          "建议尽快联系兽医"
+        ],
+        "recommendationTemplate": "幼宠异常风险更高，请尽快联系兽医，不要仅依赖居家观察。",
+        "whenToSeeVetTemplate": "若体温持续偏高、精神变差或拒食，请立即联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "不要写「继续观察即可」作为唯一建议。"
+      },
+      "binding": {
+        "slots": ["petName", "temperature", "speciesLabel", "userReportText"]
+      }
+    },
+    "watch.HRV_STRESS": {
+      "meta": {
+        "templateId": "watch.HRV_STRESS",
+        "riskLevel": "watch",
+        "primaryFlag": "HRV_STRESS",
+        "bundleVersion": "1.0.0",
+        "name": "HRV 压力/恢复偏低",
+        "caseIds": ["hrv_stress_watch"],
+        "toneProfileId": "TONE-WATCH",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "压力或恢复指标偏低，建议观察",
+        "summaryOutline": [
+          "恢复/压力相关指标偏低",
+          "近期可能存在环境或社交变化",
+          "建议关注睡眠与食欲"
+        ],
+        "recommendationTemplate": "尽量保持安静环境，观察睡眠、食欲与情绪变化数天。",
+        "whenToSeeVetTemplate": "若食欲明显下降、持续紧张或精神萎靡，建议联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "关注压力、睡眠与环境变化；不要确诊。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    },
+    "watch.LIMPING_PAIN": {
+      "meta": {
+        "templateId": "watch.LIMPING_PAIN",
+        "riskLevel": "watch",
+        "primaryFlag": "LIMPING_PAIN",
+        "bundleVersion": "1.0.0",
+        "name": "跛行/疼痛",
+        "caseIds": ["limping_pain_watch"],
+        "toneProfileId": "TONE-WATCH",
+        "evidenceStyle": "bullets_light_polish",
+        "notes": "dataQuality=partial 时 resolver 可追加 partial 提示句"
+      },
+      "copy": {
+        "titlePattern": "可能存在跛行或疼痛",
+        "summaryOutline": [
+          "报告跛行或疼痛表现",
+          "建议减少运动",
+          "观察步态是否改善"
+        ],
+        "recommendationTemplate": "请减少剧烈活动，避免跳跃，观察步态与是否愿意承重。",
+        "whenToSeeVetTemplate": "若跛行持续或加重、明显疼痛或肢体不敢着地，建议联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "须体现减少运动、观察步态及持续或加重需就医。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    },
+    "watch.SLOW_RECOVERY": {
+      "meta": {
+        "templateId": "watch.SLOW_RECOVERY",
+        "riskLevel": "watch",
+        "primaryFlag": "SLOW_RECOVERY",
+        "bundleVersion": "1.0.0",
+        "name": "恢复偏慢",
+        "caseIds": ["recovery_slow_watch"],
+        "toneProfileId": "TONE-WATCH",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "运动后恢复偏慢，建议调整活动",
+        "summaryOutline": [
+          "运动后恢复较慢",
+          "睡眠质量可能下降",
+          "建议降低活动强度并观察"
+        ],
+        "recommendationTemplate": "适当降低运动强度，保证休息，观察数日内恢复情况。",
+        "whenToSeeVetTemplate": "若精神持续低迷、食欲下降或恢复无明显改善，建议联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "关注恢复、睡眠与活动强度调整。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    },
+    "watch.MILD_DIARRHEA": {
+      "meta": {
+        "templateId": "watch.MILD_DIARRHEA",
+        "riskLevel": "watch",
+        "primaryFlag": "MILD_DIARRHEA",
+        "bundleVersion": "1.0.0",
+        "name": "轻度腹泻",
+        "caseIds": ["mild_diarrhea_watch"],
+        "toneProfileId": "TONE-WATCH",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "轻度腹泻，可先观察",
+        "summaryOutline": [
+          "轻度腹泻",
+          "精神状态目前尚可",
+          "建议观察排便次数与食欲"
+        ],
+        "recommendationTemplate": "注意观察排便频率、粪便性状与精神食欲，保证清洁饮水。",
+        "whenToSeeVetTemplate": "若腹泻加重、便血、呕吐或精神变差，建议联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "须提及腹泻、观察与精神状态。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    },
+    "watch.POST_VACCINE": {
+      "meta": {
+        "templateId": "watch.POST_VACCINE",
+        "riskLevel": "watch",
+        "primaryFlag": "POST_VACCINE",
+        "bundleVersion": "1.0.0",
+        "name": "疫苗后疲倦",
+        "caseIds": ["post_vaccine_tired_watch"],
+        "toneProfileId": "TONE-WATCH",
+        "evidenceStyle": "bullets_light_polish"
+      },
+      "copy": {
+        "titlePattern": "疫苗后轻度疲倦，可先观察",
+        "summaryOutline": [
+          "近期接种疫苗",
+          "轻度疲倦较常见",
+          "建议观察食欲、体温与精神"
+        ],
+        "recommendationTemplate": "接种后1～2天内可适当休息，观察食欲与精神变化。",
+        "whenToSeeVetTemplate": "若高热、持续呕吐、面部肿胀或精神极度萎靡，请联系兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "须点明疫苗后情境与观察食欲。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    },
+    "watch.DATA_MISSING": {
+      "meta": {
+        "templateId": "watch.DATA_MISSING",
+        "riskLevel": "watch",
+        "primaryFlag": "DATA_MISSING",
+        "bundleVersion": "1.0.0",
+        "name": "健康数据不足",
+        "caseIds": ["missing_vitals"],
+        "toneProfileId": "TONE-DATA-LIMIT",
+        "evidenceStyle": "bullets_as_is"
+      },
+      "copy": {
+        "titlePattern": "健康数据不足，暂无法完整评估",
+        "summaryOutline": [
+          "设备离线或核心体征缺失",
+          "当前无法判断健康状况",
+          "请检查项圈佩戴与电量"
+        ],
+        "recommendationTemplate": "请先确认设备在线、佩戴位置与充电状态，待数据恢复后再查看。",
+        "whenToSeeVetTemplate": "若宠物明显精神萎靡、呕吐或呼吸困难，请直接联系兽医，不必等待设备数据。"
+      },
+      "guidance": {
+        "llmInstructions": "严禁下健康正常结论；必须体现数据不足与不能判断。"
+      },
+      "binding": {
+        "slots": ["petName", "deviceQuality", "deviceWarning", "missingList"]
+      }
+    },
+    "watch.DATA_STALE": {
+      "meta": {
+        "templateId": "watch.DATA_STALE",
+        "riskLevel": "watch",
+        "primaryFlag": "DATA_STALE",
+        "bundleVersion": "1.0.0",
+        "name": "监测数据过期",
+        "caseIds": ["stale_device_data"],
+        "toneProfileId": "TONE-DATA-LIMIT",
+        "evidenceStyle": "bullets_as_is"
+      },
+      "copy": {
+        "titlePattern": "监测数据已过期",
+        "summaryOutline": [
+          "最近健康数据更新时间较久",
+          "不能依据旧数据判断当前状态",
+          "请确认设备在线并获取新数据"
+        ],
+        "recommendationTemplate": "请确认设备在线并刷新数据；在获得最新监测前，请结合线下观察判断。",
+        "whenToSeeVetTemplate": "若宠物出现明显不适表现，请直接联系兽医，勿依赖过期数据。"
+      },
+      "guidance": {
+        "llmInstructions": "严禁「当前正常」「一切正常」；须体现数据过期与不能依据旧数据。"
+      },
+      "binding": {
+        "slots": ["petName", "lastSeenAt", "deviceQuality", "deviceWarning"]
+      }
+    },
+    "emergency.EMERGENCY_RESPIRATORY": {
+      "meta": {
+        "templateId": "emergency.EMERGENCY_RESPIRATORY",
+        "riskLevel": "emergency",
+        "primaryFlag": "EMERGENCY_RESPIRATORY",
+        "bundleVersion": "1.0.0",
+        "name": "呼吸困难紧急",
+        "caseIds": ["emergency_breathing_difficulty"],
+        "toneProfileId": "TONE-EMERGENCY",
+        "evidenceStyle": "bullets_as_is"
+      },
+      "copy": {
+        "titlePattern": "呼吸困难，请立即就医",
+        "summaryOutline": [
+          "安静时呼吸明显异常",
+          "存在呼吸困难相关表现",
+          "请立即联系兽医或就近就医"
+        ],
+        "recommendationTemplate": "请立即联系兽医或前往最近的宠物医院，保持通风，减少应激，途中密切观察。",
+        "whenToSeeVetTemplate": "当前情况属于紧急状况，请立即就医，不要等待居家观察。"
+      },
+      "guidance": {
+        "llmInstructions": "紧迫就医导向；禁止「继续观察即可」「先等等」。"
+      },
+      "binding": {
+        "slots": ["petName", "respiratoryRate", "userReportText"]
+      }
+    },
+    "emergency.EMERGENCY_SEIZURE": {
+      "meta": {
+        "templateId": "emergency.EMERGENCY_SEIZURE",
+        "riskLevel": "emergency",
+        "primaryFlag": "EMERGENCY_SEIZURE",
+        "bundleVersion": "1.0.0",
+        "name": "抽搐紧急",
+        "caseIds": ["emergency_seizure"],
+        "toneProfileId": "TONE-EMERGENCY",
+        "evidenceStyle": "bullets_as_is"
+      },
+      "copy": {
+        "titlePattern": "抽搐，请立即联系兽医",
+        "summaryOutline": [
+          "报告抽搐发作",
+          "属于紧急状况",
+          "请立即寻求兽医帮助"
+        ],
+        "recommendationTemplate": "请立即联系兽医；若抽搐持续或反复发作，尽快前往宠物医院急诊。",
+        "whenToSeeVetTemplate": "抽搐后请尽快就医，即使暂时缓解也应咨询兽医。"
+      },
+      "guidance": {
+        "llmInstructions": "必须体现抽搐、立即就医；禁止弱化紧急程度。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    },
+    "emergency.EMERGENCY_TRAUMA": {
+      "meta": {
+        "templateId": "emergency.EMERGENCY_TRAUMA",
+        "riskLevel": "emergency",
+        "primaryFlag": "EMERGENCY_TRAUMA",
+        "bundleVersion": "1.0.0",
+        "name": "外伤紧急（扩展占位）",
+        "caseIds": [],
+        "toneProfileId": "TONE-EMERGENCY",
+        "evidenceStyle": "bullets_as_is",
+        "notes": "预留 EMG-03，无 V1 case"
+      },
+      "copy": {
+        "titlePattern": "外伤，请立即就医",
+        "summaryOutline": [
+          "报告外伤",
+          "可能危及生命",
+          "请立即就医"
+        ],
+        "recommendationTemplate": "请立即联系兽医或前往宠物医院急诊，途中注意减少移动造成的二次伤害。",
+        "whenToSeeVetTemplate": "外伤属于紧急状况，请立即就医，不要等待。"
+      },
+      "guidance": {
+        "llmInstructions": "紧迫就医导向；禁止淡化或建议仅居家观察。"
+      },
+      "binding": {
+        "slots": ["petName", "userReportText"]
+      }
+    }
+  }
+}

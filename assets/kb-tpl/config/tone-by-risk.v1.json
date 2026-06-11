@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "schemaVersion": "xiaozhua.kb_tpl.tone.v1",
+    "bundleVersion": "1.0.0",
+    "description": "语气 profile：供 ③ LLM Prompt 与 ④ EmergencyToneGuard 参考。"
+  },
+  "profiles": {
+    "TONE-NORMAL": {
+      "applicableRisk": ["normal"],
+      "tone": "平和、肯定",
+      "preferredPhrases": ["平稳", "日常观察", "未见明显异常"],
+      "avoidPhrases": ["确诊", "绝对健康", "过度保证", "一定没事"]
+    },
+    "TONE-WATCH": {
+      "applicableRisk": ["watch"],
+      "tone": "关注、可居家观察",
+      "preferredPhrases": ["观察", "留意", "复查", "持续关注"],
+      "avoidPhrases": ["不用看医生", "确诊", "无需就医"]
+    },
+    "TONE-WARNING": {
+      "applicableRisk": ["warning"],
+      "tone": "明确建议兽医",
+      "preferredPhrases": ["联系兽医", "尽快", "关注", "进一步评估"],
+      "avoidPhrases": ["一定没事", "继续观察即可", "不用看医生", "确诊"]
+    },
+    "TONE-EMERGENCY": {
+      "applicableRisk": ["emergency"],
+      "tone": "紧迫、行动导向",
+      "preferredPhrases": ["立即", "马上", "就近就医", "尽快就医"],
+      "avoidPhrases": ["先观察", "等等看", "不用就医", "继续观察即可", "不着急"]
+    },
+    "TONE-DATA-LIMIT": {
+      "applicableRisk": ["watch"],
+      "applicablePrimaryFlags": ["DATA_MISSING", "DATA_STALE"],
+      "tone": "诚实、受限",
+      "preferredPhrases": ["无法判断", "数据不足", "数据过期", "不能依据旧数据"],
+      "avoidPhrases": ["正常", "健康", "当前没事", "一切正常", "目前健康"]
+    }
+  }
+}
