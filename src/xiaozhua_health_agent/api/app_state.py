@@ -5,10 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from xiaozhua_health_agent.copy import CopyKnowledgeBundle
-from xiaozhua_health_agent.pipeline import (
-    DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS,
-    HealthTriagePipelineOptions,
-)
+from xiaozhua_health_agent.config import get_default_health_triage_pipeline_options
+from xiaozhua_health_agent.pipeline import HealthTriagePipelineOptions
 
 __all__ = [
     "HealthApiAppState",
@@ -34,7 +32,7 @@ class HealthApiAppState:
     """
 
     pipeline_options: HealthTriagePipelineOptions = field(
-        default_factory=lambda: DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS,
+        default_factory=get_default_health_triage_pipeline_options,
     )
     copy_bundle: CopyKnowledgeBundle | None = None
     copy_bundle_ready: bool = False

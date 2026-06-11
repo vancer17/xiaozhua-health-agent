@@ -48,7 +48,9 @@ def test_validate_intelligent_request_accepts_case_input(
 ) -> None:
     """合法 case input 应通过契约校验。"""
     case = dataset.case_by_id("normal_dog_daily_check")  # type: ignore[attr-defined]
-    result = validate_intelligent_request(case.input.model_dump(by_alias=True, mode="json"))
+    result = validate_intelligent_request(
+        case.input.model_dump(by_alias=True, mode="json")
+    )
     assert result.passed is True
     assert result.parsed is not None
 

@@ -32,6 +32,7 @@ from xiaozhua_health_agent.triage import TriageCoreResult
 __all__ = [
     "DEFAULT_CONTENT_GUARD_OPTIONS",
     "DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS",
+    "default_health_triage_pipeline_options",
     "ContentGuardMode",
     "ContentGuardModeLiteral",
     "ContentGuardOptions",
@@ -213,10 +214,23 @@ class HealthTriagePipelineOptions:
         )
 
 
+def default_health_triage_pipeline_options() -> HealthTriagePipelineOptions:
+    """从环境变量加载默认管道配置。
+
+    :returns: 当前进程环境下的管道选项。
+    :rtype: HealthTriagePipelineOptions
+    """
+    from xiaozhua_health_agent.config.pipeline_settings import (
+        get_default_health_triage_pipeline_options,
+    )
+
+    return get_default_health_triage_pipeline_options()
+
+
 DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS: HealthTriagePipelineOptions = (
     HealthTriagePipelineOptions()
 )
-"""阶段 1 默认管道配置（机械路径 + 默认知识包 + 出站 schema 校验）。"""
+"""静态默认管道配置（不读环境变量）；运行时代码请用 :func:`default_health_triage_pipeline_options`。"""
 
 
 @dataclass(frozen=True, slots=True)

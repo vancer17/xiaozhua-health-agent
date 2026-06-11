@@ -19,11 +19,13 @@ from xiaozhua_health_agent.pipeline.pipeline_types import (
     DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS,
     HealthTriagePipelineOptions,
     HealthTriagePipelineResult,
+    default_health_triage_pipeline_options,
 )
 from xiaozhua_health_agent.schemas import AgentInput
 
 __all__ = [
     "DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS",
+    "default_health_triage_pipeline_options",
     "make_health_triage_output_provider",
     "run_health_triage",
     "run_health_triage_async",
@@ -43,7 +45,7 @@ def run_health_triage(
 
     :param agent_input: 符合 input_schema 的 case / App JSON。
     :type agent_input: AgentInput | collections.abc.Mapping[str, Any]
-    :param options: 管道配置；省略时使用 ``DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS``。
+    :param options: 管道配置；省略时使用 :func:`default_health_triage_pipeline_options`。
     :type options: HealthTriagePipelineOptions | None
     :param copy_bundle: 可选预加载知识包；若提供则覆盖 ``options.copy_bundle``。
     :type copy_bundle: CopyKnowledgeBundle | None
@@ -110,7 +112,7 @@ def make_health_triage_output_provider(
     :rtype: TriageOutputProvider
     """
     effective_options = (
-        options if options is not None else DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS
+        options if options is not None else default_health_triage_pipeline_options()
     )
 
     def _provider(
@@ -150,7 +152,7 @@ def _resolve_runtime_options(
     :rtype: tuple[HealthTriagePipelineOptions, CopyKnowledgeBundle | None]
     """
     effective_options = (
-        options if options is not None else DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS
+        options if options is not None else default_health_triage_pipeline_options()
     )
     if copy_bundle_override is not None:
         return effective_options.with_copy_bundle(
@@ -182,7 +184,7 @@ async def _resolve_runtime_options_async(
     :rtype: tuple[HealthTriagePipelineOptions, CopyKnowledgeBundle | None]
     """
     effective_options = (
-        options if options is not None else DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS
+        options if options is not None else default_health_triage_pipeline_options()
     )
     if copy_bundle_override is not None:
         return effective_options.with_copy_bundle(
