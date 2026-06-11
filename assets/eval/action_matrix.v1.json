@@ -1,0 +1,262 @@
+{
+  "meta": {
+    "schemaVersion": "xiaozhua.eval.action_matrix.v1",
+    "matrixVersion": "1.0.0",
+    "description": "20 case 行动路由契约期望矩阵（机械文案 + merge 管道，无 LLM）。",
+    "casesDataset": "xiaozhua.health_triage_cases.v1",
+    "expectedCaseCount": 20,
+    "pipelineProfile": "mechanical_merge_v1"
+  },
+  "sources": {
+    "casesPath": "docs/cases/health_triage_cases.v1.json",
+    "triageBundleVersion": "1.0.0",
+    "kbActionPath": "assets/kb-action/actions.v1.json",
+    "kbActionBundleVersion": "1.0.0"
+  },
+  "summary": {
+    "hintCounts": {
+      "rest_observe": 6,
+      "contact_vet": 10,
+      "check_device": 2,
+      "emergency_now": 2
+    },
+    "primaryRouteCounts": {
+      "rest_observe": 6,
+      "contact_vet": 12,
+      "check_device": 2
+    },
+    "withSecondaryAction": 2
+  },
+  "entries": [
+    {
+      "caseId": "normal_dog_daily_check",
+      "caseName": "正常健康状态",
+      "primaryFlag": "NORMAL_DAILY",
+      "primaryActionHint": "rest_observe",
+      "primaryAction": {
+        "label": "休息观察",
+        "route": "rest_observe"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "mild_fever_after_exercise",
+      "caseName": "运动后轻度体温偏高",
+      "primaryFlag": "POST_EXERCISE",
+      "primaryActionHint": "rest_observe",
+      "primaryAction": {
+        "label": "休息观察",
+        "route": "rest_observe"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "high_fever_resting",
+      "caseName": "安静状态高热",
+      "primaryFlag": "FEVER_RESTING",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "respiratory_rate_high_resting",
+      "caseName": "安静状态呼吸率异常",
+      "primaryFlag": "RESP_RESTING",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "heart_rate_high_after_play",
+      "caseName": "运动后心率偏高",
+      "primaryFlag": "POST_EXERCISE",
+      "primaryActionHint": "rest_observe",
+      "primaryAction": {
+        "label": "休息观察",
+        "route": "rest_observe"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "heart_rate_high_resting_warning",
+      "caseName": "安静状态心率异常",
+      "primaryFlag": "HR_RESTING_CHRONIC",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "hrv_stress_watch",
+      "caseName": "HRV 压力异常",
+      "primaryFlag": "HRV_STRESS",
+      "primaryActionHint": "rest_observe",
+      "primaryAction": {
+        "label": "休息观察",
+        "route": "rest_observe"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "limping_pain_watch",
+      "caseName": "跛行/疼痛风险",
+      "primaryFlag": "LIMPING_PAIN",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "recovery_slow_watch",
+      "caseName": "恢复慢",
+      "primaryFlag": "SLOW_RECOVERY",
+      "primaryActionHint": "rest_observe",
+      "primaryAction": {
+        "label": "休息观察",
+        "route": "rest_observe"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "missing_vitals",
+      "caseName": "健康数据缺失",
+      "primaryFlag": "DATA_MISSING",
+      "primaryActionHint": "check_device",
+      "primaryAction": {
+        "label": "检查设备",
+        "route": "check_device"
+      },
+      "secondaryAction": {
+        "label": "记录症状",
+        "route": "record_symptom"
+      },
+      "notes": "secondaryByPrimaryFlag → record_symptom"
+    },
+    {
+      "caseId": "conflict_user_normal_sensor_fever",
+      "caseName": "用户描述正常但设备发热",
+      "primaryFlag": "USER_DEVICE_CONFLICT",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "emergency_breathing_difficulty",
+      "caseName": "呼吸困难紧急症状",
+      "primaryFlag": "EMERGENCY_RESPIRATORY",
+      "primaryActionHint": "emergency_now",
+      "primaryAction": {
+        "label": "立即联系兽医/就医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "emergency_seizure",
+      "caseName": "抽搐紧急症状",
+      "primaryFlag": "EMERGENCY_SEIZURE",
+      "primaryActionHint": "emergency_now",
+      "primaryAction": {
+        "label": "立即联系兽医/就医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "persistent_vomiting_warning",
+      "caseName": "持续呕吐",
+      "primaryFlag": "REPEATED_VOMITING",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "mild_diarrhea_watch",
+      "caseName": "轻度腹泻",
+      "primaryFlag": "MILD_DIARRHEA",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "senior_cat_low_energy",
+      "caseName": "老年猫精神差",
+      "primaryFlag": "SENIOR_DECLINE",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "puppy_fever_high_risk",
+      "caseName": "幼犬发热高风险",
+      "primaryFlag": "FEVER_RESTING",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null,
+      "notes": "CTX-08 规则产出 FEVER_RESTING primaryFlag（非 PUPPY_FEVER 枚举键）"
+    },
+    {
+      "caseId": "post_vaccine_tired_watch",
+      "caseName": "疫苗后疲倦",
+      "primaryFlag": "POST_VACCINE",
+      "primaryActionHint": "rest_observe",
+      "primaryAction": {
+        "label": "休息观察",
+        "route": "rest_observe"
+      },
+      "secondaryAction": null
+    },
+    {
+      "caseId": "stale_device_data",
+      "caseName": "设备数据过期",
+      "primaryFlag": "DATA_STALE",
+      "primaryActionHint": "check_device",
+      "primaryAction": {
+        "label": "检查设备",
+        "route": "check_device"
+      },
+      "secondaryAction": {
+        "label": "记录症状",
+        "route": "record_symptom"
+      },
+      "notes": "secondaryByPrimaryFlag → record_symptom"
+    },
+    {
+      "caseId": "chronic_heart_resp_warning",
+      "caseName": "慢性心脏史 + 呼吸偏高",
+      "primaryFlag": "RESP_RESTING",
+      "primaryActionHint": "contact_vet",
+      "primaryAction": {
+        "label": "联系兽医",
+        "route": "contact_vet"
+      },
+      "secondaryAction": null,
+      "notes": "ResolvePrimaryFlag 产出 RESP_RESTING（与 CTX-04 CHRONIC_HEART_RESP 规则命中并存）"
+    }
+  ]
+}

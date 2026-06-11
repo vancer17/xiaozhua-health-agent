@@ -15,9 +15,10 @@ class SchemaKind(StrEnum):
 
     INPUT = "input"
     OUTPUT = "output"
+    DRAFT_COPY = "draft_copy"
 
 
-SchemaKindLiteral = Literal["input", "output"]
+SchemaKindLiteral = Literal["input", "output", "draft_copy"]
 
 
 class OutputValidationMode(StrEnum):
@@ -61,6 +62,8 @@ class ViolationCode(StrEnum):
     EXTRA_FIELD = "EXTRA_FIELD"
     VALUE_ERROR = "VALUE_ERROR"
     ACTION_INVALID = "ACTION_INVALID"
+    ACTION_ROUTE_MISMATCH = "ACTION_ROUTE_MISMATCH"
+    ACTION_LABEL_MISMATCH = "ACTION_LABEL_MISMATCH"
     RISK_MISMATCH = "RISK_MISMATCH"
     CONFIDENCE_MISMATCH = "CONFIDENCE_MISMATCH"
     CASE_OUTPUT_MISSING = "CASE_OUTPUT_MISSING"
@@ -82,6 +85,8 @@ ViolationCodeLiteral = Literal[
     "EXTRA_FIELD",
     "VALUE_ERROR",
     "ACTION_INVALID",
+    "ACTION_ROUTE_MISMATCH",
+    "ACTION_LABEL_MISMATCH",
     "RISK_MISMATCH",
     "CONFIDENCE_MISMATCH",
     "CASE_OUTPUT_MISSING",
