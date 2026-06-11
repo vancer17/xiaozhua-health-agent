@@ -43,6 +43,15 @@ from xiaozhua_health_agent.api.http_types import (
     LivenessResponse,
     ReadinessResponse,
 )
+from xiaozhua_health_agent.api.intelligent_http_mapping import (
+    ERROR_INTELLIGENT_DISABLED,
+    ERROR_INTELLIGENT_INPUT_VALIDATION,
+    HTTP_STATUS_NOT_FOUND,
+    build_intelligent_disabled_http_error,
+    build_intelligent_input_validation_http_error,
+    map_intelligent_validation_to_http_error,
+    map_intelligent_validation_to_http_error_async,
+)
 from xiaozhua_health_agent.api.server import (
     run_health_api_server,
     run_health_api_server_async,
@@ -70,6 +79,13 @@ __all__ = [
     "HealthTriageErrorBody",
     "HealthTriageHttpError",
     "HealthTriageRequestBody",
+    "ERROR_INTELLIGENT_DISABLED",
+    "ERROR_INTELLIGENT_INPUT_VALIDATION",
+    "HTTP_STATUS_NOT_FOUND",
+    "build_intelligent_disabled_http_error",
+    "build_intelligent_input_validation_http_error",
+    "map_intelligent_validation_to_http_error",
+    "map_intelligent_validation_to_http_error_async",
     "LivenessResponse",
     "PipelineFailureHttpMapping",
     "ReadinessResponse",

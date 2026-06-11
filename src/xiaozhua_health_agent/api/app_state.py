@@ -29,6 +29,8 @@ class HealthApiAppState:
     :vartype service_ready: bool
     :ivar startup_error: 启动阶段失败说明；成功时为 ``None``。
     :vartype startup_error: str | None
+    :ivar intelligent_enabled: 是否暴露 ``POST /intelligent`` 占位端点。
+    :vartype intelligent_enabled: bool
     """
 
     pipeline_options: HealthTriagePipelineOptions = field(
@@ -38,6 +40,7 @@ class HealthApiAppState:
     copy_bundle_ready: bool = False
     service_ready: bool = False
     startup_error: str | None = None
+    intelligent_enabled: bool = True
 
     def resolved_pipeline_options(self) -> HealthTriagePipelineOptions:
         """返回绑定了预加载知识包的管道配置。

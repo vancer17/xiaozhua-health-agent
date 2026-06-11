@@ -58,6 +58,8 @@ def create_app(
     if pipeline_options is not None:
         resolved_state.pipeline_options = pipeline_options
 
+    resolved_state.intelligent_enabled = resolved_settings.intelligent_enabled
+
     if copy_bundle is not None:
         resolved_state.copy_bundle = copy_bundle
         resolved_state.copy_bundle_ready = True

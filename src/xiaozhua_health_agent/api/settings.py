@@ -44,6 +44,8 @@ class HealthApiSettings(BaseSettings):
     :vartype api_version: str
     :ivar internal_prefix: 运维探针路由前缀（如 ``/internal``）；空字符串表示挂载在根路径。
     :vartype internal_prefix: str
+    :ivar intelligent_enabled: 是否挂载 ``POST /intelligent`` 占位端点。
+    :vartype intelligent_enabled: bool
     """
 
     model_config = SettingsConfigDict(
@@ -82,6 +84,10 @@ class HealthApiSettings(BaseSettings):
     internal_prefix: str = Field(
         default="/internal",
         description="运维探针（``/healthz``、``/readyz``）路径前缀。",
+    )
+    intelligent_enabled: bool = Field(
+        default=True,
+        description="是否启用 ``POST /intelligent`` 静态占位端点。",
     )
 
 
