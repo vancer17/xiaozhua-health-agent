@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Final, Literal, TypeAlias
 
@@ -153,6 +153,7 @@ async def run_draft_llm_with_retry_async(
     qwen_client: AsyncQwenClient,
     options: DraftGenerationRetryOptions | None = None,
     mechanical_options: MechanicalDraftOptions | None = None,
+    initial_messages: Sequence[QwenChatMessage] | None = None,
     completion_factory: Callable[
         [QwenChatCompletionRequest],
         Awaitable[QwenChatCompletionResponse],
@@ -169,6 +170,9 @@ async def run_draft_llm_with_retry_async(
     :type options: DraftGenerationRetryOptions | None
     :param mechanical_options: 机械兜底选项。
     :type mechanical_options: MechanicalDraftOptions | None
+    :param initial_messages: 可选预置对话消息（如 WP5 guard repair 链）；省略时使用
+        ``build_draft_chat_completion_request`` 默认 system/user。
+    :type initial_messages: collections.abc.Sequence[QwenChatMessage] | None
     :param completion_factory: 可选注入补全调用（单测用）；默认 ``qwen_client.create_chat_completion``。
     :type completion_factory: collections.abc.Callable | None
     :returns: 重试协调结果。
@@ -183,7 +187,10 @@ async def run_draft_llm_with_retry_async(
     )
 
     base_request = build_draft_chat_completion_request(resolved)
-    messages: list[QwenChatMessage] = list(base_request.messages)
+    if initial_messages is not None:
+        messages: list[QwenChatMessage] = list(initial_messages)
+    else:
+        messages = list(base_request.messages)
 
     last_state = _AttemptState()
     all_warnings: list[DraftParseWarning] = []

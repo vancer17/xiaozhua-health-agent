@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from xiaozhua_health_agent.context import DerivedFacts, TriageRiskLiteral, max_risk_level
+from xiaozhua_health_agent.context import (
+    DerivedFacts,
+    TriageRiskLiteral,
+    max_risk_level,
+)
 from xiaozhua_health_agent.parse import FactSheet
 from xiaozhua_health_agent.triage.triage_types import RuleHitRecord
 
@@ -68,7 +72,9 @@ def fuse_risk(
         candidates.append("watch")
 
     final = max_risk_level(candidates)
-    if dq_floor_active and final == "normal":
+    if final is None:
+        final = "watch"
+    elif dq_floor_active and final == "normal":
         final = "watch"
 
     arbitration_note = _build_arbitration_note(final, derived)
@@ -99,7 +105,9 @@ def _build_arbitration_note(
         notes.append(
             f"最终风险 {final} 低于上游 signals 最高档 {derived.max_signal_risk}",
         )
-    if derived.upstream_risk not in {"unknown", final} and _risk_rank(final) < _risk_rank(
+    if derived.upstream_risk not in {"unknown", final} and _risk_rank(
+        final
+    ) < _risk_rank(
         derived.upstream_risk,  # type: ignore[arg-type]
     ):
         notes.append(

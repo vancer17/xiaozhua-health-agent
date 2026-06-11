@@ -249,14 +249,14 @@
     {
       "caseId": "chronic_heart_resp_warning",
       "caseName": "慢性心脏史 + 呼吸偏高",
-      "primaryFlag": "RESP_RESTING",
+      "primaryFlag": "CHRONIC_HEART_RESP",
       "primaryActionHint": "contact_vet",
       "primaryAction": {
         "label": "联系兽医",
         "route": "contact_vet"
       },
       "secondaryAction": null,
-      "notes": "ResolvePrimaryFlag 产出 RESP_RESTING（与 CTX-04 CHRONIC_HEART_RESP 规则命中并存）"
+      "notes": "CTX-04 慢病+安静呼吸异常；CTX-02 在 hasChronicHeart∧hasRestingTachypnea 时互斥"
     }
   ]
 }

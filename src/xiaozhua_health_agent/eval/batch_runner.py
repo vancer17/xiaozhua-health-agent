@@ -11,7 +11,7 @@ import sys
 from collections.abc import Callable, Mapping, Sequence
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Literal, TextIO, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Literal, TextIO, TypeAlias, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -54,6 +54,9 @@ from xiaozhua_health_agent.eval.copy_llm_batch import (
 from xiaozhua_health_agent.eval.semantic_evaluator import SemanticEvalOptions
 from xiaozhua_health_agent.paths import default_cases_path
 
+if TYPE_CHECKING:
+    from xiaozhua_health_agent.pipeline import MilestoneBBatchReport
+
 # ---------------------------------------------------------------------------
 # 运行模式
 # ---------------------------------------------------------------------------
@@ -65,9 +68,15 @@ class BatchRunMode(StrEnum):
     RISK_ONLY = "risk-only"
     FULL_OUTPUT = "full-output"
     COPY_LLM = "copy-llm"
+    MILESTONE_B = "milestone-b"
 
 
-BatchRunModeLiteral: TypeAlias = Literal["risk-only", "full-output", "copy-llm"]
+BatchRunModeLiteral: TypeAlias = Literal[
+    "risk-only",
+    "full-output",
+    "copy-llm",
+    "milestone-b",
+]
 
 
 class BatchRunConfig(BaseModel):
@@ -125,6 +134,16 @@ class BatchRunConfig(BaseModel):
         ge=1,
         le=20,
         description="copy-llm 并发上限。",
+    )
+    milestone_b_max_concurrency: int = Field(
+        default=4,
+        ge=1,
+        le=20,
+        description="milestone-b 机械管道并发上限。",
+    )
+    assert_milestone_b_soft_gate: bool = Field(
+        default=True,
+        description="milestone-b 模式是否在硬门槛后断言 mustMention 软门槛。",
     )
 
 
@@ -184,8 +203,8 @@ def run_batch(
     provider: TriageOutputProvider | None = None,
     dataset: HealthTriageDataset | None = None,
     outputs_by_case_id: OutputsByCaseId | None = None,
-) -> RiskEvalReport | FullEvalReport | CopyLlmBatchReport:
-    """按配置执行批跑（``risk-only`` / ``full-output`` / ``copy-llm``）。
+) -> RiskEvalReport | FullEvalReport | CopyLlmBatchReport | MilestoneBBatchReport:
+    """按配置执行批跑（``risk-only`` / ``full-output`` / ``copy-llm`` / ``milestone-b``）。
 
     输出来源优先级：
 
@@ -203,10 +222,13 @@ def run_batch(
     :type dataset: HealthTriageDataset | None
     :param outputs_by_case_id: 可选显式输出映射。
     :type outputs_by_case_id: OutputsByCaseId | None
-    :returns: risk-only、full-output 或 copy-llm 批跑报告。
-    :rtype: RiskEvalReport | FullEvalReport | CopyLlmBatchReport
+    :returns: risk-only、full-output、copy-llm 或 milestone-b 批跑报告。
+    :rtype: RiskEvalReport | FullEvalReport | CopyLlmBatchReport | MilestoneBBatchReport
     """
     resolved_dataset = _resolve_batch_dataset(config, dataset)
+
+    if config.mode == BatchRunMode.MILESTONE_B.value:
+        return _run_milestone_b_batch(config, resolved_dataset)
 
     if config.mode == BatchRunMode.COPY_LLM.value:
         return _run_copy_llm_batch(config, resolved_dataset)
@@ -246,6 +268,41 @@ def _resolve_batch_dataset(
         config.cases_path if config.cases_path is not None else default_cases_path()
     )
     return load_health_triage_dataset(cases_path)
+
+
+def _run_milestone_b_batch(
+    config: BatchRunConfig,
+    dataset: HealthTriageDataset,
+) -> MilestoneBBatchReport:
+    """执行 ``milestone-b`` 机械管道 + full-output 闭环批跑。
+
+    :param config: 批跑配置。
+    :type config: BatchRunConfig
+    :param dataset: mock case 数据集。
+    :type dataset: HealthTriageDataset
+    :returns: 里程碑 B 批跑报告。
+    :rtype: MilestoneBBatchReport
+    """
+    from xiaozhua_health_agent.pipeline import (
+        MilestoneBBatchConfig,
+        run_milestone_b_batch,
+    )
+
+    milestone_config = MilestoneBBatchConfig(
+        cases_path=config.cases_path,
+        max_concurrency=config.milestone_b_max_concurrency,
+        synonym_map_path=config.full_eval_options.semantic.synonym_map_path,
+        must_mention_soft_threshold=(
+            config.full_eval_options.semantic.must_mention_batch_threshold
+        ),
+        load_default_synonym_map=config.full_eval_options.semantic.synonym_map_path
+        is None,
+    )
+    return run_milestone_b_batch(
+        dataset,
+        config=milestone_config,
+        full_eval_options=config.full_eval_options,
+    )
 
 
 def _run_copy_llm_batch(
@@ -674,11 +731,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="xiaozhua-eval-batch",
-        description="小爪健康分诊 Agent — 20 case 批跑（risk-only / full-output / copy-llm）。",
+        description="小爪健康分诊 Agent — 20 case 批跑（risk-only / full-output / copy-llm / milestone-b）。",
     )
     parser.add_argument(
         "--mode",
-        choices=["risk-only", "full-output", "copy-llm"],
+        choices=["risk-only", "full-output", "copy-llm", "milestone-b"],
         default="risk-only",
         help="批跑模式（默认 risk-only）。",
     )
@@ -762,6 +819,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=3,
         help="copy-llm 并发上限（默认 3）。",
     )
+    parser.add_argument(
+        "--milestone-b-concurrency",
+        type=int,
+        default=4,
+        help="milestone-b 机械管道并发上限（默认 4）。",
+    )
+    parser.add_argument(
+        "--skip-milestone-b-soft-gate",
+        action="store_true",
+        help="milestone-b 模式跳过 mustMention 软门槛断言。",
+    )
     return parser
 
 
@@ -798,6 +866,8 @@ def config_from_namespace(namespace: argparse.Namespace) -> BatchRunConfig:
         copy_llm_scope=namespace.copy_llm_scope,
         copy_llm_skip_llm=namespace.copy_llm_skip,
         copy_llm_max_concurrency=namespace.copy_llm_concurrency,
+        milestone_b_max_concurrency=namespace.milestone_b_concurrency,
+        assert_milestone_b_soft_gate=not namespace.skip_milestone_b_soft_gate,
     )
 
 
@@ -811,13 +881,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     :returns: 进程退出码。
     :rtype: int
     """
+    from xiaozhua_health_agent.pipeline import (
+        MilestoneBBatchReport,
+        assert_milestone_b_hard_gate,
+        assert_milestone_b_soft_gates,
+        write_milestone_b_json_report,
+        write_milestone_b_report,
+    )
+
     parser = build_arg_parser()
     namespace = parser.parse_args(list(argv) if argv is not None else None)
     config = config_from_namespace(namespace)
 
     report = run_batch(config)
 
-    if isinstance(report, CopyLlmBatchReport):
+    if isinstance(report, MilestoneBBatchReport):
+        write_milestone_b_report(
+            report,
+            include_per_case=not namespace.no_per_case,
+        )
+    elif isinstance(report, CopyLlmBatchReport):
         write_copy_llm_batch_report(
             report,
             include_per_case=not namespace.no_per_case,
@@ -836,7 +919,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     if namespace.json_report is not None:
-        if isinstance(report, CopyLlmBatchReport):
+        if isinstance(report, MilestoneBBatchReport):
+            write_milestone_b_json_report(report, namespace.json_report)
+        elif isinstance(report, CopyLlmBatchReport):
             namespace.json_report.write_text(
                 json.dumps(
                     copy_llm_report_to_dict(report),
@@ -852,7 +937,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
 
     try:
-        if isinstance(report, CopyLlmBatchReport):
+        if isinstance(report, MilestoneBBatchReport):
+            assert_milestone_b_hard_gate(report)
+            if config.assert_milestone_b_soft_gate:
+                assert_milestone_b_soft_gates(report)
+        elif isinstance(report, CopyLlmBatchReport):
             assert_copy_llm_hard_gate(report)
         elif isinstance(report, FullEvalReport):
             assert_full_output_hard_gate(report)

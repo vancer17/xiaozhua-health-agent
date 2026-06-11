@@ -13,9 +13,10 @@ from typing import Any
 from pydantic import ValidationError
 
 from xiaozhua_health_agent.copy import DraftCopyJSON
-from xiaozhua_health_agent.output.merge_types import (
-    DEFAULT_OPTIONAL_SAFETY_NOTICE,
-    MergeOutputError,
+from xiaozhua_health_agent.output.merge_types import DEFAULT_OPTIONAL_SAFETY_NOTICE
+from xiaozhua_health_agent.output.merge_violations import (
+    build_merge_output_error_for_safety_notice,
+    build_merge_output_error_for_validation,
 )
 from xiaozhua_health_agent.schemas import (
     ActionItem,
@@ -90,8 +91,7 @@ def merge_agent_output(
     try:
         return AgentOutput.model_validate(payload)
     except ValidationError as exc:
-        msg = f"合并后的 AgentOutput 未通过契约校验（{exc.error_count()} 项错误）。"
-        raise MergeOutputError(msg) from exc
+        raise build_merge_output_error_for_validation(exc) from exc
 
 
 def merge_agent_output_to_alias_dict(
@@ -150,10 +150,6 @@ def _resolve_safety_notice_for_merge(
         return stripped
 
     if triage.safety_notice_required:
-        msg = (
-            "safetyNoticeRequired 为 true，但 DraftCopyJSON.safetyNotice 为空；"
-            "应在 ③ 阶段写入免责声明片段后再合并。"
-        )
-        raise MergeOutputError(msg)
+        raise build_merge_output_error_for_safety_notice()
 
     return DEFAULT_OPTIONAL_SAFETY_NOTICE
