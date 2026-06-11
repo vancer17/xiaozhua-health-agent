@@ -25,6 +25,9 @@ DEFAULT_KB_ACTION_RELATIVE_PATH: str = "assets/kb-action/actions.v1.json"
 DEFAULT_ACTION_MATRIX_RELATIVE_PATH: str = "assets/eval/action_matrix.v1.json"
 """相对项目根目录的默认 action 矩阵期望 fixture 路径。"""
 
+DEFAULT_KB_INPUT_LEX_RELATIVE_PATH: str = "assets/kb-input-lex/input-lex.v1.json"
+"""相对项目根目录的默认 KB-INPUT-LEX 文件路径。"""
+
 PACKAGE_ANCHOR_PROJECT_ROOT: Final[Path] = Path(__file__).resolve().parents[2]
 """以 ``paths.py`` 为锚点推断的项目根（未设置 ``XIAOZHUA_PROJECT_ROOT`` 时使用）。"""
 
@@ -112,6 +115,18 @@ def default_action_matrix_path() -> Path:
 
     settings = get_xiaozhua_path_settings()
     return settings.resolve_path(settings.action_matrix_path)
+
+
+def default_input_lex_path() -> Path:
+    """返回默认 KB-INPUT-LEX 文件路径。
+
+    :returns: input-lex JSON 绝对路径。
+    :rtype: pathlib.Path
+    """
+    from xiaozhua_health_agent.config.path_settings import get_xiaozhua_path_settings
+
+    settings = get_xiaozhua_path_settings()
+    return settings.resolve_path(settings.kb_input_lex_path)
 
 
 def default_triage_core_path() -> Path:

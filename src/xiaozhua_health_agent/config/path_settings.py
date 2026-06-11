@@ -13,6 +13,7 @@ from xiaozhua_health_agent.paths import (
     DEFAULT_CASES_RELATIVE_PATH,
     DEFAULT_FORBIDDEN_PATTERNS_RELATIVE_PATH,
     DEFAULT_KB_ACTION_RELATIVE_PATH,
+    DEFAULT_KB_INPUT_LEX_RELATIVE_PATH,
     DEFAULT_KB_TPL_CONFIG_RELATIVE_DIR,
     DEFAULT_SYNONYM_MAP_RELATIVE_PATH,
     PACKAGE_ANCHOR_PROJECT_ROOT,
@@ -45,6 +46,8 @@ class XiaozhuaPathSettings(BaseSettings):
     :vartype kb_syn_path: str
     :ivar kb_action_path: KB-ACTION JSON 路径。
     :vartype kb_action_path: str
+    :ivar kb_input_lex_path: KB-INPUT-LEX JSON 路径。
+    :vartype kb_input_lex_path: str
     :ivar triage_core_path: triage-core 决策表路径（预留；当前规则仍内嵌于 Python）。
     :vartype triage_core_path: str
     :ivar action_matrix_path: action 评测 fixture 路径。
@@ -82,6 +85,10 @@ class XiaozhuaPathSettings(BaseSettings):
     kb_action_path: str = Field(
         default=DEFAULT_KB_ACTION_RELATIVE_PATH,
         description="KB-ACTION JSON 路径。",
+    )
+    kb_input_lex_path: str = Field(
+        default=DEFAULT_KB_INPUT_LEX_RELATIVE_PATH,
+        description="KB-INPUT-LEX JSON 路径。",
     )
     triage_core_path: str = Field(
         default="assets/triage-core/triage-core.v1.json",

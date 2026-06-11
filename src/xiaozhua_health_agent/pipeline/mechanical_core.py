@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Coroutine, Mapping
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from typing import Any
 
 from xiaozhua_health_agent.copy import (
@@ -22,6 +23,13 @@ from xiaozhua_health_agent.copy import (
     resolve_copy_template,
 )
 from xiaozhua_health_agent.eval import Violation
+from xiaozhua_health_agent.input_lex import (
+    InputLexCorpusBuildError,
+    InputLexEnrichError,
+    InputLexEnrichResult,
+    InputLexLoadError,
+    enrich_agent_input_payload_async,
+)
 from xiaozhua_health_agent.guard import ContentGuardMode, ContentGuardResult
 from xiaozhua_health_agent.parse import ParseResult, parse_input
 from xiaozhua_health_agent.pipeline.merge_fallback import (
@@ -133,11 +141,30 @@ async def run_mechanical_health_triage_core_async(
     :rtype: HealthTriagePipelineResult
     """
     case_id = _extract_case_id(agent_input)
-    parsed = parse_input(agent_input)
+    input_lex_enrich: InputLexEnrichResult | None = None
+    payload_for_parse: AgentInput | Mapping[str, Any] = agent_input
+
+    if options.input_lex_enabled:
+        try:
+            input_lex_enrich = await enrich_agent_input_payload_async(
+                _coerce_payload_mapping(agent_input),
+                bundle=options.input_lex_bundle,
+                load_default_bundle=options.load_default_input_lex_bundle,
+                options=options.resolved_input_lex_enrich_options(),
+            )
+            payload_for_parse = input_lex_enrich.enriched_payload
+        except (InputLexEnrichError, InputLexCorpusBuildError, InputLexLoadError) as exc:
+            return _build_enrich_failure_result(
+                case_id=case_id,
+                error_message=str(exc),
+            )
+
+    parsed = parse_input(payload_for_parse)
     if not parsed.passed or parsed.fact_sheet is None:
         return _build_parse_failure_result(
             case_id=case_id,
             parsed=parsed,
+            input_lex_enrich=input_lex_enrich,
         )
 
     triage = run_triage_core(parsed.fact_sheet)
@@ -148,13 +175,14 @@ async def run_mechanical_health_triage_core_async(
     )
 
     if options.skip_content_guard:
-        return await _run_skip_guard_path_async(
+        result = await _run_skip_guard_path_async(
             case_id=case_id,
             parsed=parsed,
             triage=triage,
             resolved=resolved,
             options=options,
         )
+        return _attach_input_lex_enrich(result, input_lex_enrich)
 
     retry_context = build_draft_retry_context(
         parsed=parsed,
@@ -169,13 +197,14 @@ async def run_mechanical_health_triage_core_async(
     )
 
     if not retry_outcome.passed or retry_outcome.draft is None:
-        return _build_retry_coordinator_failure_result(
+        failure = _build_retry_coordinator_failure_result(
             case_id=case_id,
             parsed=parsed,
             triage=triage,
             resolved=resolved,
             retry_outcome=retry_outcome,
         )
+        return _attach_input_lex_enrich(failure, input_lex_enrich)
 
     guard_result = retry_outcome.last_guard_result
     guard_warnings = _resolve_guard_warnings(
@@ -183,7 +212,7 @@ async def run_mechanical_health_triage_core_async(
         options=options,
     )
 
-    return await _merge_and_validate_async(
+    result = await _merge_and_validate_async(
         case_id=case_id,
         parsed=parsed,
         triage=triage,
@@ -197,6 +226,7 @@ async def run_mechanical_health_triage_core_async(
         attempt_count=retry_outcome.attempt_count,
         used_mechanical_fallback=retry_outcome.used_mechanical_fallback,
     )
+    return _attach_input_lex_enrich(result, input_lex_enrich)
 
 
 async def _run_skip_guard_path_async(
@@ -478,10 +508,34 @@ def _build_pipeline_result_from_merge(
     )
 
 
+def _build_enrich_failure_result(
+    *,
+    case_id: str,
+    error_message: str,
+) -> HealthTriagePipelineResult:
+    """构建步骤 ⓪ enrich 失败结果（内部辅助）。
+
+    :param case_id: 用例标识。
+    :type case_id: str
+    :param error_message: enrich 阶段错误说明。
+    :type error_message: str
+    :returns: ``stage=enrich`` 的管道失败结果。
+    :rtype: HealthTriagePipelineResult
+    """
+    return HealthTriagePipelineResult(
+        passed=False,
+        case_id=case_id,
+        stage=HealthTriagePipelineStage.ENRICH,
+        output=None,
+        error_message=error_message,
+    )
+
+
 def _build_parse_failure_result(
     *,
     case_id: str,
     parsed: ParseResult,
+    input_lex_enrich: InputLexEnrichResult | None = None,
 ) -> HealthTriagePipelineResult:
     """构建步骤 ① 失败结果（内部辅助）。
 
@@ -489,6 +543,8 @@ def _build_parse_failure_result(
     :type case_id: str
     :param parsed: 未通过的解析结果。
     :type parsed: ParseResult
+    :param input_lex_enrich: 可选 enrich 阶段产物（enrich 已执行时保留）。
+    :type input_lex_enrich: InputLexEnrichResult | None
     :returns: ``stage=parse`` 的管道失败结果。
     :rtype: HealthTriagePipelineResult
     """
@@ -499,7 +555,41 @@ def _build_parse_failure_result(
         output=None,
         violations=tuple(parsed.violations),
         error_message="输入契约校验失败，未进入分诊管道。",
+        input_lex_enrich=input_lex_enrich,
     )
+
+
+def _attach_input_lex_enrich(
+    result: HealthTriagePipelineResult,
+    input_lex_enrich: InputLexEnrichResult | None,
+) -> HealthTriagePipelineResult:
+    """将 enrich 产物附加到管道结果（内部辅助）。
+
+    :param result: 原始管道结果。
+    :type result: HealthTriagePipelineResult
+    :param input_lex_enrich: enrich 编排结果；未启用时为 ``None``。
+    :type input_lex_enrich: InputLexEnrichResult | None
+    :returns: 附加 ``input_lex_enrich`` 后的结果副本。
+    :rtype: HealthTriagePipelineResult
+    """
+    if input_lex_enrich is None:
+        return result
+    return replace(result, input_lex_enrich=input_lex_enrich)
+
+
+def _coerce_payload_mapping(
+    agent_input: AgentInput | Mapping[str, Any],
+) -> dict[str, Any]:
+    """将入参规范化为 camelCase JSON 根字典（内部辅助）。
+
+    :param agent_input: 强类型入参或 JSON 映射。
+    :type agent_input: AgentInput | collections.abc.Mapping[str, Any]
+    :returns: 可变的根字典副本。
+    :rtype: dict[str, Any]
+    """
+    if isinstance(agent_input, AgentInput):
+        return agent_input.model_dump(by_alias=True, mode="json")
+    return dict(agent_input)
 
 
 def _extract_case_id(agent_input: AgentInput | Mapping[str, Any]) -> str:
