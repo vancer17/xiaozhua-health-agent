@@ -66,9 +66,7 @@ def test_corpus_builder_collects_three_sources(
     )
     assert len(corpus.segments) >= 1
     text_segments = [
-        segment
-        for segment in corpus.segments
-        if segment.source == "userReport.text"
+        segment for segment in corpus.segments if segment.source == "userReport.text"
     ]
     assert len(text_segments) == 1
     assert "抽搐" in text_segments[0].raw_text

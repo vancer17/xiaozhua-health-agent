@@ -474,9 +474,8 @@ def _resolve_patch_skip_reason(
     effective_mode = rule_mode
 
     if effective_mode == "fill_if_unknown":
-        if (
-            merge_policy.explicit_ui_wins_over_lexicon
-            and is_explicit_ui_value(field_path, current_value)
+        if merge_policy.explicit_ui_wins_over_lexicon and is_explicit_ui_value(
+            field_path, current_value
         ):
             return "explicit_ui_value"
         if not is_lexicon_unknown_value(field_path, current_value):
@@ -484,10 +483,7 @@ def _resolve_patch_skip_reason(
         return None
 
     if effective_mode == "force":
-        if (
-            field_path in merge_policy.boolean_emergency_fields
-            and patch_value is True
-        ):
+        if field_path in merge_policy.boolean_emergency_fields and patch_value is True:
             return None
         if (
             merge_policy.explicit_ui_wins_over_lexicon

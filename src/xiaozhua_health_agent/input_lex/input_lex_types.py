@@ -205,7 +205,9 @@ class InputLexEnumerations(BaseModel):
         :rtype: tuple[str, ...]
         :raises ValueError: 类型不符合预期时抛出。
         """
-        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        if not isinstance(value, list) or not all(
+            isinstance(item, str) for item in value
+        ):
             msg = "enumerations 字段必须为字符串数组。"
             raise ValueError(msg)
         return tuple(value)
@@ -257,7 +259,7 @@ class InputLexRule(BaseModel):
     )
     species: tuple[str, ...] | None = Field(
         default=None,
-        description="可选物种过滤（如 ``[\"dog\"]``）；省略表示全物种。",
+        description='可选物种过滤（如 ``["dog"]``）；省略表示全物种。',
     )
     match: InputLexRuleMatch = Field(description="短语匹配配置。")
     patches: dict[str, InputLexPatchScalar] = Field(
@@ -426,7 +428,9 @@ class InputLexBundle(BaseModel):
             msg = f"rules 中存在重复 id：{sorted(set(duplicates))}"
             raise ValueError(msg)
 
-        sorted_rules = tuple(sorted(self.rules, key=lambda item: (item.priority, item.id)))
+        sorted_rules = tuple(
+            sorted(self.rules, key=lambda item: (item.priority, item.id))
+        )
         object.__setattr__(self, "rules", sorted_rules)
         return self
 
@@ -595,7 +599,6 @@ class InputLexRuleMatchResult(BaseModel):
     :param evaluated_rule_count: 实际参与短语匹配评估的规则条数（不含物种过滤跳过）。
     :param skipped_species_filter_count: 因 ``species`` 过滤或上下文缺失而跳过的规则条数。
     """
-
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 

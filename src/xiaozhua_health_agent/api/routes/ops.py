@@ -61,9 +61,7 @@ def build_ops_router() -> APIRouter:
         """
         input_lex_required = app_state.pipeline_options.input_lex_enabled
         input_lex_ready = (
-            app_state.input_lex_bundle_ready
-            if input_lex_required
-            else True
+            app_state.input_lex_bundle_ready if input_lex_required else True
         )
         ready = (
             app_state.service_ready

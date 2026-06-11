@@ -14,10 +14,7 @@ import copy
 from collections.abc import Mapping
 from typing import Any
 
-from xiaozhua_health_agent.input_lex.corpus_builder import (
-    CorpusBuilder,
-    InputLexCorpusBuildError,
-)
+from xiaozhua_health_agent.input_lex.corpus_builder import CorpusBuilder
 from xiaozhua_health_agent.input_lex.enrich_audit import (
     EnrichAuditError,
     build_enrich_audit_record_async,
@@ -34,10 +31,7 @@ from xiaozhua_health_agent.input_lex.input_lex_types import (
     InputLexMergeResult,
     InputLexRuleMatchResult,
 )
-from xiaozhua_health_agent.input_lex.lexicon_loader import (
-    InputLexLoadError,
-    load_input_lex_bundle_async,
-)
+from xiaozhua_health_agent.input_lex.lexicon_loader import load_input_lex_bundle_async
 from xiaozhua_health_agent.input_lex.patch_merger import PatchMerger
 from xiaozhua_health_agent.input_lex.rule_matcher import RuleMatcher
 from xiaozhua_health_agent.schemas import SpeciesLiteral
