@@ -73,7 +73,9 @@ def test_resolve_copy_template_all_cases(
         assert "确诊为" in resolved.forbidden
 
 
-def test_post_exercise_primary_vital_temperature(dataset: object, knowledge_bundle: object) -> None:
+def test_post_exercise_primary_vital_temperature(
+    dataset: object, knowledge_bundle: object
+) -> None:
     """case #2：POST_EXERCISE 优先突出体温槽位。"""
     case = dataset.case_by_id("mild_fever_after_exercise")  # type: ignore[attr-defined]
     parsed = parse_input(case.input)
@@ -91,7 +93,9 @@ def test_post_exercise_primary_vital_temperature(dataset: object, knowledge_bund
     assert resolved.filled_slots.get("primaryVital")
 
 
-def test_post_exercise_primary_vital_heart_rate(dataset: object, knowledge_bundle: object) -> None:
+def test_post_exercise_primary_vital_heart_rate(
+    dataset: object, knowledge_bundle: object
+) -> None:
     """case #5：POST_EXERCISE 优先突出心率槽位。"""
     case = dataset.case_by_id("heart_rate_high_after_play")  # type: ignore[attr-defined]
     parsed = parse_input(case.input)
@@ -107,7 +111,9 @@ def test_post_exercise_primary_vital_heart_rate(dataset: object, knowledge_bundl
     assert "次/分" in resolved.filled_slots.get("primaryVital", "")
 
 
-def test_emergency_safety_notice_snippet(dataset: object, knowledge_bundle: object) -> None:
+def test_emergency_safety_notice_snippet(
+    dataset: object, knowledge_bundle: object
+) -> None:
     """emergency case 选用 SNIP-EMERGENCY 免责声明。"""
     case = dataset.case_by_id("emergency_breathing_difficulty")  # type: ignore[attr-defined]
     parsed = parse_input(case.input)
@@ -122,7 +128,9 @@ def test_emergency_safety_notice_snippet(dataset: object, knowledge_bundle: obje
     assert "紧急" in resolved.safety_notice_snippet
 
 
-def test_data_missing_secondary_action(dataset: object, knowledge_bundle: object) -> None:
+def test_data_missing_secondary_action(
+    dataset: object, knowledge_bundle: object
+) -> None:
     """case #10：DATA_MISSING 映射记录症状次行动。"""
     case = dataset.case_by_id("missing_vitals")  # type: ignore[attr-defined]
     parsed = parse_input(case.input)
@@ -138,7 +146,9 @@ def test_data_missing_secondary_action(dataset: object, knowledge_bundle: object
     assert resolved.secondary_action_draft.label == "记录症状"
 
 
-def test_partial_device_appends_inline_summary(dataset: object, knowledge_bundle: object) -> None:
+def test_partial_device_appends_inline_summary(
+    dataset: object, knowledge_bundle: object
+) -> None:
     """partial 数据质量时 summaryOutline 追加不完整提示。"""
     case = dataset.case_by_id("emergency_seizure")  # type: ignore[attr-defined]
     parsed = parse_input(case.input)

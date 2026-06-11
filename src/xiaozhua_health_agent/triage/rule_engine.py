@@ -6,7 +6,12 @@ from xiaozhua_health_agent.context import EvalContext, eval_when
 from xiaozhua_health_agent.context.text_matchers import notes_indicate_medication
 from xiaozhua_health_agent.parse import FactSheet
 from xiaozhua_health_agent.triage.rules_v1 import TRIAGE_RULES_V1
-from xiaozhua_health_agent.triage.triage_types import RuleHitRecord, RuleLayerLiteral, RuleThen, TriageRule
+from xiaozhua_health_agent.triage.triage_types import (
+    RuleHitRecord,
+    RuleLayerLiteral,
+    RuleThen,
+    TriageRule,
+)
 
 _LAYER_ORDER: tuple[RuleLayerLiteral, ...] = ("EMG", "DQ", "CTX")
 
@@ -29,7 +34,9 @@ def evaluate_rules(
     for layer in _LAYER_ORDER:
         layer_rules = [rule for rule in rules if rule.layer == layer]
         if layer == "CTX":
-            layer_rules.sort(key=lambda rule: rule.priority if rule.priority is not None else 999)
+            layer_rules.sort(
+                key=lambda rule: rule.priority if rule.priority is not None else 999
+            )
         for rule in layer_rules:
             if not eval_when(rule.when, ctx):
                 continue
@@ -55,7 +62,7 @@ def _resolve_then(rule: TriageRule, fact_sheet: FactSheet) -> RuleThen | None:
         if fact_sheet.profile.medications or notes_indicate_medication(
             fact_sheet.context.notes,
         ):
-            mention = "不要自行调整药量"
+            mention = "请勿擅自更改用药"
             if mention not in extra:
                 extra.append(mention)
         then.mentions_add = extra

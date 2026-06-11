@@ -21,6 +21,8 @@ from xiaozhua_health_agent.eval.validation_result import (
     Violation,
     ViolationCode,
     ViolationCodeLiteral,
+    ViolationDomain,
+    ViolationDomainLiteral,
     ViolationSeverity,
 )
 from xiaozhua_health_agent.schemas import (
@@ -347,6 +349,31 @@ def _violations_from_validation_error(error: ValidationError) -> list[Violation]
     :returns: 统一格式的违规项列表（可能多条）。
     :rtype: list[Violation]
     """
+    return list(
+        violations_from_pydantic_validation_error(
+            error,
+            domain=ViolationDomain.SCHEMA.value,
+        ),
+    )
+
+
+def violations_from_pydantic_validation_error(
+    error: ValidationError,
+    *,
+    domain: ViolationDomain | ViolationDomainLiteral = ViolationDomain.SCHEMA,
+) -> tuple[Violation, ...]:
+    """将 Pydantic ``ValidationError`` 转为 ``Violation`` 元组（公开 API）。
+
+    供 ``output.merge_violations``、管道 merge 失败与 schema 校验复用。
+
+    :param error: Pydantic 校验异常。
+    :type error: pydantic.ValidationError
+    :param domain: 违规来源域；Merge / schema 校验默认 ``schema``。
+    :type domain: ViolationDomain | ViolationDomainLiteral
+    :returns: 统一格式的违规项元组（可能多条）。
+    :rtype: tuple[Violation, ...]
+    """
+    resolved_domain = domain.value if isinstance(domain, ViolationDomain) else domain
     violations: list[Violation] = []
 
     for item in error.errors():
@@ -358,14 +385,15 @@ def _violations_from_validation_error(error: ValidationError) -> list[Violation]
         violations.append(
             Violation(
                 code=code,
+                domain=resolved_domain,
                 path=path,
                 field=top_level_field,
                 message=message,
                 severity=ViolationSeverity.HIGH.value,
-            )
+            ),
         )
 
-    return violations
+    return tuple(violations)
 
 
 def _format_error_location(location: Sequence[int | str]) -> str:

@@ -45,7 +45,7 @@ RuleLayerLiteral = Literal["EMG", "DQ", "CTX"]
 class RuleThen(BaseModel):
     """规则命中后的瘦 emit（``rules[].then``）。"""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     risk: TriageRiskLiteral | None = None
     risk_floor: TriageRiskLiteral | None = Field(default=None, alias="riskFloor")

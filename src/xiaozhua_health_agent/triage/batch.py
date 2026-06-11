@@ -12,14 +12,19 @@ from xiaozhua_health_agent.eval import (
     run_risk_only_evaluation_with_provider,
 )
 from xiaozhua_health_agent.eval.case_dataset import HealthTriageDataset
-from xiaozhua_health_agent.eval.risk_evaluator import ActualOutputPayload, TriageOutputProvider
+from xiaozhua_health_agent.eval.risk_evaluator import (
+    ActualOutputPayload,
+    TriageOutputProvider,
+)
 from xiaozhua_health_agent.parse import parse_input
 from xiaozhua_health_agent.schemas import AgentInput
 from xiaozhua_health_agent.triage.policy_data import BUNDLE_VERSION
 from xiaozhua_health_agent.triage.triage_core import run_triage_core
 
 
-def triage_output_for_input(agent_input: AgentInput | Mapping[str, Any]) -> ActualOutputPayload:
+def triage_output_for_input(
+    agent_input: AgentInput | Mapping[str, Any],
+) -> ActualOutputPayload:
     """对单条 input 执行 parse → triage，返回 risk-only output dict。
 
     :param agent_input: App / case 输入 JSON。
@@ -54,8 +59,12 @@ def run_triage_risk_batch(
     :rtype: RiskEvalReport
     """
     resolved_dataset = dataset if dataset is not None else load_health_triage_dataset()
-    resolved_options = options if options is not None else RiskEvalOptions(
-        bundle_version=BUNDLE_VERSION,
+    resolved_options = (
+        options
+        if options is not None
+        else RiskEvalOptions(
+            bundle_version=BUNDLE_VERSION,
+        )
     )
     if resolved_options.bundle_version is None:
         resolved_options = resolved_options.model_copy(

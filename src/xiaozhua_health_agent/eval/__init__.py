@@ -71,6 +71,7 @@ from xiaozhua_health_agent.eval.schema_validator import (
     validate_all_case_inputs,
     validate_input,
     validate_output,
+    violations_from_pydantic_validation_error,
 )
 from xiaozhua_health_agent.eval.structure_validator import (
     DRAFT_STRUCTURE_SCHEMA_VERSION,
@@ -119,6 +120,8 @@ from xiaozhua_health_agent.eval.validation_result import (
     Violation,
     ViolationCode,
     ViolationCodeLiteral,
+    ViolationDomain,
+    ViolationDomainLiteral,
     ViolationSeverity,
     ViolationSeverityLiteral,
 )
@@ -308,6 +311,7 @@ __all__ = [
     "OUTPUT_SCHEMA_VERSION",
     "validate_input",
     "validate_output",
+    "violations_from_pydantic_validation_error",
     "validate_all_case_inputs",
     "summarize_validation_results",
     # --- structure_validator：④-A ValidateStructure（DraftCopyJSON）---
@@ -327,6 +331,8 @@ __all__ = [
     "Violation",
     "ViolationCode",
     "ViolationCodeLiteral",
+    "ViolationDomain",
+    "ViolationDomainLiteral",
     "ViolationSeverity",
     "ViolationSeverityLiteral",
     # --- risk_eval_types：risk-only 专用结果类型 ---

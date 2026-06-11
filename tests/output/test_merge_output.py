@@ -245,5 +245,8 @@ def test_merge_raises_when_required_safety_notice_missing() -> None:
     triage = run_triage_core(parsed.fact_sheet)
     assert triage.safety_notice_required is True
 
-    with pytest.raises(MergeOutputError, match="safetyNoticeRequired"):
+    with pytest.raises(MergeOutputError, match="safetyNoticeRequired") as exc_info:
         merge_agent_output(triage=triage, draft=draft)
+
+    assert len(exc_info.value.violations) == 1
+    assert exc_info.value.violations[0].field == "safetyNotice"

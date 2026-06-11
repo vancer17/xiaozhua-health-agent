@@ -366,7 +366,7 @@
           "睡眠质量可能下降",
           "建议降低活动强度并观察"
         ],
-        "recommendationTemplate": "适当降低运动强度，保证休息，观察数日内恢复情况。",
+        "recommendationTemplate": "适当降低运动强度，充分休息，观察数日内恢复情况。",
         "whenToSeeVetTemplate": "若精神持续低迷、食欲下降或恢复无明显改善，建议联系兽医。"
       },
       "guidance": {
@@ -394,7 +394,7 @@
           "精神状态目前尚可",
           "建议观察排便次数与食欲"
         ],
-        "recommendationTemplate": "注意观察排便频率、粪便性状与精神食欲，保证清洁饮水。",
+        "recommendationTemplate": "注意观察排便频率、粪便性状与精神食欲，确保有清洁饮水。",
         "whenToSeeVetTemplate": "若腹泻加重、便血、呕吐或精神变差，建议联系兽医。"
       },
       "guidance": {

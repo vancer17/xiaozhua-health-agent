@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from xiaozhua_health_agent.triage.triage_types import PrimaryActionHintLiteral, PrimaryFlagLiteral
+from xiaozhua_health_agent.triage.triage_types import (
+    PrimaryActionHintLiteral,
+    PrimaryFlagLiteral,
+)
 
 BUNDLE_VERSION = "1.0.0"
 
