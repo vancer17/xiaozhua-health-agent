@@ -153,7 +153,11 @@ async def run_mechanical_health_triage_core_async(
                 options=options.resolved_input_lex_enrich_options(),
             )
             payload_for_parse = input_lex_enrich.enriched_payload
-        except (InputLexEnrichError, InputLexCorpusBuildError, InputLexLoadError) as exc:
+        except (
+            InputLexEnrichError,
+            InputLexCorpusBuildError,
+            InputLexLoadError,
+        ) as exc:
             return _build_enrich_failure_result(
                 case_id=case_id,
                 error_message=str(exc),

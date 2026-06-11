@@ -73,7 +73,9 @@ def test_build_enrich_audit_record_links_match_and_merge(
     payload = _colloquial_seizure_payload()
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     audit = build_enrich_audit_record(
@@ -118,7 +120,9 @@ def test_serialize_enrich_audit_record_roundtrip(
     payload = _colloquial_seizure_payload()
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     audit = build_enrich_audit_record(
@@ -143,7 +147,9 @@ async def test_build_and_persist_enrich_audit_async(
     payload = _colloquial_seizure_payload()
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     audit = await build_enrich_audit_record_async(
@@ -178,7 +184,9 @@ def test_enrich_audit_class_facade_matches_module_functions(
     payload = _colloquial_seizure_payload()
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     via_function = build_enrich_audit_record(

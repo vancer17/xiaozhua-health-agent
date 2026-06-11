@@ -436,15 +436,9 @@ def _build_rule_hit_audits(
     for hit in hits:
         rule = hit.rule
         merge_record = merge_by_rule_id.get(rule.id)
-        patch_apps = (
-            merge_record.patch_applications
-            if merge_record is not None
-            else ()
-        )
+        patch_apps = merge_record.patch_applications if merge_record is not None else ()
         append_apps = (
-            merge_record.append_applications
-            if merge_record is not None
-            else ()
+            merge_record.append_applications if merge_record is not None else ()
         )
         matched_phrases = tuple(
             InputLexMatchedPhraseAudit(
@@ -589,7 +583,9 @@ def _extract_input_identifiers(
         return None, None
 
     case_id_raw = original_payload.get("caseId")
-    case_id = case_id_raw if isinstance(case_id_raw, str) and case_id_raw.strip() else None
+    case_id = (
+        case_id_raw if isinstance(case_id_raw, str) and case_id_raw.strip() else None
+    )
 
     timestamp_raw = original_payload.get("timestamp")
     input_timestamp = _coerce_timestamp_to_iso_string(timestamp_raw)

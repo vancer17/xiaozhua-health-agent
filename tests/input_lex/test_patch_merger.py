@@ -68,7 +68,9 @@ def test_force_mode_sets_emergency_seizure_from_colloquial_text(
     payload = _minimal_input_payload()
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
 
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
@@ -98,7 +100,9 @@ def test_explicit_ui_wins_blocks_fill_if_unknown_enum(
 
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     assert merge_result.enriched_payload["userReport"]["vomiting"] == "none"
@@ -114,7 +118,9 @@ def test_enum_escalation_upgrades_vomiting_to_repeated(
 
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     assert merge_result.enriched_payload["userReport"]["vomiting"] == "repeated"
@@ -171,7 +177,9 @@ def test_energy_normal_blocked_when_already_lower(
 
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     assert merge_result.enriched_payload["userReport"]["energy"] == "lower"
@@ -187,7 +195,9 @@ def test_append_deduplicates_symptoms(
 
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
     merge_result = PatchMerger(lex_bundle).merge(payload, match_result)
 
     symptoms = merge_result.enriched_payload["userReport"]["symptoms"]
@@ -212,8 +222,9 @@ def test_20_cases_unchanged_when_structured_fields_already_set(
 
         assert merged["userReport"]["seizure"] == original["userReport"]["seizure"]
         assert merged["userReport"]["vomiting"] == original["userReport"]["vomiting"]
-        assert merged["userReport"]["breathingDifficulty"] == (
-            original["userReport"]["breathingDifficulty"]
+        assert (
+            merged["userReport"]["breathingDifficulty"]
+            == (original["userReport"]["breathingDifficulty"])
         )
 
 
@@ -225,7 +236,9 @@ async def test_merge_input_lex_patches_async_matches_sync(
     payload = _minimal_input_payload()
     agent_input = AgentInput.model_validate(payload)
     corpus = build_match_corpus(agent_input, lex_bundle)
-    match_result = RuleMatcher(lex_bundle).match(corpus, species=agent_input.pet.species)
+    match_result = RuleMatcher(lex_bundle).match(
+        corpus, species=agent_input.pet.species
+    )
 
     sync_result = merge_input_lex_patches(lex_bundle, payload, match_result)
     async_result = await merge_input_lex_patches_async(
