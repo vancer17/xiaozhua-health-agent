@@ -9,9 +9,13 @@ from fastapi import Depends, Request
 from xiaozhua_health_agent.api.app_state import HealthApiAppState
 from xiaozhua_health_agent.api.errors import HealthTriageHttpError
 from xiaozhua_health_agent.api.http_types import HealthTriageErrorBody
+from xiaozhua_health_agent.api.intelligent_http_mapping import (
+    build_intelligent_disabled_http_error,
+)
 
 __all__ = [
     "get_health_api_app_state",
+    "require_intelligent_endpoint",
     "require_service_ready",
 ]
 
@@ -66,4 +70,22 @@ async def require_service_ready(
         )
         raise HealthTriageHttpError(status_code=503, body=body)
 
+    return app_state
+
+
+async def require_intelligent_endpoint(
+    app_state: Annotated[HealthApiAppState, Depends(get_health_api_app_state)],
+) -> HealthApiAppState:
+    """依赖项：要求 ``POST /intelligent`` 占位端点已启用。
+
+    占位实现 **不** 依赖 KB-TPL 预加载或分诊管道就绪；仅检查功能开关。
+
+    :param app_state: 注入的应用状态。
+    :type app_state: HealthApiAppState
+    :returns: 已启用 intelligent 的应用状态（原样返回）。
+    :rtype: HealthApiAppState
+    :raises HealthTriageHttpError: ``intelligent_enabled=False`` 时抛出（404）。
+    """
+    if not app_state.intelligent_enabled:
+        raise build_intelligent_disabled_http_error()
     return app_state

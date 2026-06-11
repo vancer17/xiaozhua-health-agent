@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from xiaozhua_health_agent.api.routes.health_triage import build_health_triage_router
+from xiaozhua_health_agent.api.routes.intelligent import build_intelligent_router
 from xiaozhua_health_agent.api.routes.ops import build_ops_router
 
 __all__ = [
@@ -26,6 +27,7 @@ def build_api_router(
     root = APIRouter()
 
     root.include_router(build_health_triage_router())
+    root.include_router(build_intelligent_router())
 
     ops_router = build_ops_router()
     prefix = internal_prefix.rstrip("/")
