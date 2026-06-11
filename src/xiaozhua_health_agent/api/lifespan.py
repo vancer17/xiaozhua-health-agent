@@ -80,6 +80,8 @@ async def _startup_health_api_state(
     :returns: ``None``。
     :rtype: None
     """
+    app_state.intelligent_enabled = settings.intelligent_enabled
+
     if app_state.copy_bundle is not None:
         app_state.copy_bundle_ready = True
         app_state.service_ready = True
