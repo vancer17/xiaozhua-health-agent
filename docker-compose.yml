@@ -1,0 +1,73 @@
+# 小爪健康分诊 Agent — Docker Compose（默认交付 / 生产形态）
+#
+# 快速开始：
+#   cp .env.example .env          # 按需编辑（含 QWEN_API_KEY 等）
+#   docker compose up --build -d
+#   curl -sf http://localhost:${HEALTH_API_PUBLISH_PORT:-8080}/internal/readyz
+#
+# 本地开发（挂载 assets 热更新）：
+#   cp compose.override.example.yml compose.override.yml
+#   docker compose up --build
+#
+# 批跑评测（一次性任务，需挂载 docs/cases）：
+#   docker compose --profile eval run --rm eval-batch
+#
+# 说明：
+# - 知识资产默认使用镜像内嵌的 assets/（与 CI 构建一致）
+# - 运行时配置通过 .env / environment 注入，勿将密钥写入 compose 文件
+
+name: xiaozhua-health-agent
+
+x-health-agent-base: &health-agent-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: xiaozhua-health-agent:${IMAGE_TAG:-local}
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    XIAOZHUA_PROJECT_ROOT: /app
+    HEALTH_API_HOST: 0.0.0.0
+    HEALTH_API_PORT: "8080"
+    XIAOZHUA_PIPELINE_LLM_ENABLED: ${XIAOZHUA_PIPELINE_LLM_ENABLED:-false}
+
+services:
+  health-agent:
+    <<: *health-agent-base
+    container_name: xiaozhua-health-agent
+    restart: unless-stopped
+    ports:
+      - "${HEALTH_API_PUBLISH_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/internal/readyz', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  eval-batch:
+    <<: *health-agent-base
+    profiles: [eval]
+    container_name: xiaozhua-health-agent-eval
+    restart: "no"
+    volumes:
+      - ./docs:/app/docs:ro
+      - ./logs/eval:/app/logs/eval
+    entrypoint:
+      - python
+      - -m
+      - xiaozhua_health_agent.eval.batch_runner
+    command:
+      - --mode
+      - ${EVAL_MODE:-milestone-b}
+      - --cases
+      - /app/docs/cases/health_triage_cases.v1.json
+      - --json-report
+      - /app/logs/eval/report.json

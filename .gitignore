@@ -150,6 +150,10 @@ activemq-data/
 # Environments
 .env
 .envrc
+compose.override.yml
+
+# Compose / local runtime outputs
+logs/eval/
 .venv
 env/
 venv/
