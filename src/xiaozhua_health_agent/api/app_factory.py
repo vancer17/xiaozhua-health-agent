@@ -16,6 +16,7 @@ from xiaozhua_health_agent.api.settings import (
     get_health_api_settings,
 )
 from xiaozhua_health_agent.copy import CopyKnowledgeBundle
+from xiaozhua_health_agent.config import get_default_health_triage_pipeline_options
 from xiaozhua_health_agent.pipeline import HealthTriagePipelineOptions
 
 __all__ = [
@@ -55,8 +56,11 @@ def create_app(
     resolved_settings = settings if settings is not None else get_health_api_settings()
     resolved_state = app_state if app_state is not None else HealthApiAppState()
 
-    if pipeline_options is not None:
-        resolved_state.pipeline_options = pipeline_options
+    resolved_state.pipeline_options = (
+        pipeline_options
+        if pipeline_options is not None
+        else get_default_health_triage_pipeline_options()
+    )
 
     resolved_state.intelligent_enabled = resolved_settings.intelligent_enabled
 

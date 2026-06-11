@@ -42,7 +42,7 @@ from xiaozhua_health_agent.eval import (
 )
 from xiaozhua_health_agent.pipeline.health_triage import run_health_triage_async
 from xiaozhua_health_agent.pipeline.pipeline_types import (
-    DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS,
+    default_health_triage_pipeline_options,
     HealthTriagePipelineOptions,
     HealthTriagePipelineResult,
 )
@@ -762,7 +762,7 @@ def _resolve_pipeline_options(
     base = (
         pipeline_options
         if pipeline_options is not None
-        else DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS
+        else default_health_triage_pipeline_options()
     )
     effective = HealthTriagePipelineOptions(
         mode=base.mode,

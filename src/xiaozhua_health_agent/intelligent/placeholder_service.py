@@ -52,7 +52,6 @@ class IntelligentPlaceholderRequestContext:
     :vartype user_message: str | None
     """
 
-
     session_id_header: str | None = None
     user_message: str | None = None
 
