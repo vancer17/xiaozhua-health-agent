@@ -13,6 +13,7 @@ from xiaozhua_health_agent.copy import (
     CopyKnowledgeBundle,
     load_default_copy_knowledge_bundle,
 )
+from xiaozhua_health_agent.input_lex import load_input_lex_bundle_async
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -84,26 +85,59 @@ async def _startup_health_api_state(
 
     if app_state.copy_bundle is not None:
         app_state.copy_bundle_ready = True
-        app_state.service_ready = True
-        return
-
-    if not settings.preload_copy_bundle:
+    elif not settings.preload_copy_bundle:
         app_state.copy_bundle_ready = False
-        app_state.service_ready = True
+    else:
+
+        async def _load_bundle() -> CopyKnowledgeBundle:
+            """在线程池中加载默认 KB-TPL 知识包（闭包）。
+
+            :returns: 默认 copy 知识资产聚合包。
+            :rtype: CopyKnowledgeBundle
+            """
+            return await asyncio.to_thread(load_default_copy_knowledge_bundle)
+
+        loaded_bundle = await _load_bundle()
+        app_state.copy_bundle = loaded_bundle
+        app_state.copy_bundle_ready = True
+
+    await _preload_input_lex_bundle_if_configured(
+        settings=settings,
+        app_state=app_state,
+    )
+
+    app_state.service_ready = True
+
+
+async def _preload_input_lex_bundle_if_configured(
+    *,
+    settings: HealthApiSettings,
+    app_state: HealthApiAppState,
+) -> None:
+    """按配置预加载 KB-INPUT-LEX 词表（内部辅助）。
+
+    :param settings: HTTP API 配置。
+    :type settings: HealthApiSettings
+    :param app_state: 待填充的应用状态。
+    :type app_state: HealthApiAppState
+    :returns: ``None``。
+    :rtype: None
+    """
+    if app_state.input_lex_bundle is not None:
+        app_state.input_lex_bundle_ready = True
         return
 
-    async def _load_bundle() -> CopyKnowledgeBundle:
-        """在线程池中加载默认 KB-TPL 知识包（闭包）。
+    should_preload = (
+        settings.preload_input_lex_bundle
+        or app_state.pipeline_options.input_lex_enabled
+    )
+    if not should_preload:
+        app_state.input_lex_bundle_ready = False
+        return
 
-        :returns: 默认 copy 知识资产聚合包。
-        :rtype: CopyKnowledgeBundle
-        """
-        return await asyncio.to_thread(load_default_copy_knowledge_bundle)
-
-    loaded_bundle = await _load_bundle()
-    app_state.copy_bundle = loaded_bundle
-    app_state.copy_bundle_ready = True
-    app_state.service_ready = True
+    loaded_lex_bundle = await load_input_lex_bundle_async()
+    app_state.input_lex_bundle = loaded_lex_bundle
+    app_state.input_lex_bundle_ready = True
 
 
 async def _shutdown_health_api_state(

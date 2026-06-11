@@ -66,6 +66,8 @@ class ReadinessResponse(BaseModel):
     :vartype ready: bool
     :ivar copy_bundle_ready: KB-TPL 知识包是否已就绪。
     :vartype copy_bundle_ready: bool
+    :ivar input_lex_bundle_ready: KB-INPUT-LEX 词表是否已就绪。
+    :vartype input_lex_bundle_ready: bool
     :ivar message: 未就绪时的说明；就绪时可为空字符串。
     :vartype message: str
     """
@@ -76,5 +78,10 @@ class ReadinessResponse(BaseModel):
     copy_bundle_ready: bool = Field(
         alias="copyBundleReady",
         description="copy 知识包是否就绪。",
+    )
+    input_lex_bundle_ready: bool = Field(
+        alias="inputLexBundleReady",
+        default=True,
+        description="KB-INPUT-LEX 词表是否就绪（未启用 enrich 时恒为 true）。",
     )
     message: str = Field(default="", description="补充说明。")

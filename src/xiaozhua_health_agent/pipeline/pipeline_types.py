@@ -13,6 +13,12 @@ from xiaozhua_health_agent.copy import (
     MechanicalDraftWarning,
 )
 from xiaozhua_health_agent.eval import Violation
+from xiaozhua_health_agent.input_lex import (
+    DEFAULT_INPUT_LEX_ENRICH_OPTIONS,
+    InputLexBundle,
+    InputLexEnrichOptions,
+    InputLexEnrichResult,
+)
 from xiaozhua_health_agent.guard import (
     ContentGuardMode,
     ContentGuardModeLiteral,
@@ -54,6 +60,7 @@ HealthTriagePipelineModeLiteral: TypeAlias = Literal["mechanical"]
 """阶段 1 仅支持机械文案路径；后续可扩展 ``llm`` / ``llm_with_guard``。"""
 
 HealthTriagePipelineStageLiteral: TypeAlias = Literal[
+    "enrich",
     "parse",
     "triage",
     "resolve",
@@ -79,6 +86,7 @@ class HealthTriagePipelineMode:
 class HealthTriagePipelineStage:
     """管道阶段常量。"""
 
+    ENRICH: HealthTriagePipelineStageLiteral = "enrich"
     PARSE: HealthTriagePipelineStageLiteral = "parse"
     TRIAGE: HealthTriagePipelineStageLiteral = "triage"
     RESOLVE: HealthTriagePipelineStageLiteral = "resolve"
@@ -131,6 +139,15 @@ class HealthTriagePipelineOptions:
     :vartype skip_merge_ready_check: bool
     :ivar merge_ready_options: merge-ready 契约校验配置。
     :vartype merge_ready_options: MergeReadyOptions | None
+    :ivar input_lex_enabled: 为 ``True`` 时在 ``parse_input`` 之前执行 KB-INPUT-LEX enrich。
+    :vartype input_lex_enabled: bool
+    :ivar input_lex_bundle: 可选预加载 KB-INPUT-LEX 词表；为 ``None`` 且
+        ``load_default_input_lex_bundle=True`` 时在 enrich 阶段加载默认制品。
+    :vartype input_lex_bundle: InputLexBundle | None
+    :ivar load_default_input_lex_bundle: 是否在 ``input_lex_bundle`` 为 ``None`` 时加载默认词表。
+    :vartype load_default_input_lex_bundle: bool
+    :ivar input_lex_enrich_options: enrich 编排选项（审计、持久化等）。
+    :vartype input_lex_enrich_options: InputLexEnrichOptions | None
     """
 
     mode: HealthTriagePipelineModeLiteral = HealthTriagePipelineMode.MECHANICAL
@@ -146,6 +163,10 @@ class HealthTriagePipelineOptions:
     enable_final_schema_recovery: bool = True
     skip_merge_ready_check: bool = False
     merge_ready_options: MergeReadyOptions | None = None
+    input_lex_enabled: bool = False
+    input_lex_bundle: InputLexBundle | None = None
+    load_default_input_lex_bundle: bool = True
+    input_lex_enrich_options: InputLexEnrichOptions | None = None
 
     def resolved_mechanical_options(self) -> MechanicalDraftOptions:
         """解析有效的机械文案选项。
@@ -186,6 +207,16 @@ class HealthTriagePipelineOptions:
             return self.merge_ready_options
         return DEFAULT_MERGE_READY_OPTIONS
 
+    def resolved_input_lex_enrich_options(self) -> InputLexEnrichOptions:
+        """解析有效的 KB-INPUT-LEX enrich 编排选项。
+
+        :returns: 显式配置或 ``DEFAULT_INPUT_LEX_ENRICH_OPTIONS``。
+        :rtype: InputLexEnrichOptions
+        """
+        if self.input_lex_enrich_options is not None:
+            return self.input_lex_enrich_options
+        return DEFAULT_INPUT_LEX_ENRICH_OPTIONS
+
     def with_copy_bundle(
         self,
         bundle: CopyKnowledgeBundle | None,
@@ -211,6 +242,41 @@ class HealthTriagePipelineOptions:
             enable_final_schema_recovery=self.enable_final_schema_recovery,
             skip_merge_ready_check=self.skip_merge_ready_check,
             merge_ready_options=self.merge_ready_options,
+            input_lex_enabled=self.input_lex_enabled,
+            input_lex_bundle=self.input_lex_bundle,
+            load_default_input_lex_bundle=self.load_default_input_lex_bundle,
+            input_lex_enrich_options=self.input_lex_enrich_options,
+        )
+
+    def with_input_lex_bundle(
+        self,
+        bundle: InputLexBundle | None,
+    ) -> HealthTriagePipelineOptions:
+        """返回替换了 ``input_lex_bundle`` 的新配置（不可变更新）。
+
+        :param bundle: 新的词表引用；可为 ``None``。
+        :type bundle: InputLexBundle | None
+        :returns: 更新后的配置副本。
+        :rtype: HealthTriagePipelineOptions
+        """
+        return HealthTriagePipelineOptions(
+            mode=self.mode,
+            copy_bundle=self.copy_bundle,
+            load_default_copy_bundle=self.load_default_copy_bundle,
+            mechanical_options=self.mechanical_options,
+            skip_final_schema_check=self.skip_final_schema_check,
+            guard_mode=self.guard_mode,
+            guard_options=self.guard_options,
+            skip_content_guard=self.skip_content_guard,
+            retry_options=self.retry_options,
+            enable_merge_fallback=self.enable_merge_fallback,
+            enable_final_schema_recovery=self.enable_final_schema_recovery,
+            skip_merge_ready_check=self.skip_merge_ready_check,
+            merge_ready_options=self.merge_ready_options,
+            input_lex_enabled=self.input_lex_enabled,
+            input_lex_bundle=bundle,
+            load_default_input_lex_bundle=self.load_default_input_lex_bundle,
+            input_lex_enrich_options=self.input_lex_enrich_options,
         )
 
 
@@ -305,6 +371,8 @@ class HealthTriagePipelineResult:
     :vartype pre_recovery_output: AgentOutput | None
     :ivar pre_recovery_violations: FinalSchema recovery 前首次 schema 失败违规副本。
     :vartype pre_recovery_violations: tuple[Violation, ...]
+    :ivar input_lex_enrich: 步骤 ⓪ KB-INPUT-LEX enrich 结果；未启用时为 ``None``。
+    :vartype input_lex_enrich: InputLexEnrichResult | None
     """
 
     passed: bool
@@ -328,6 +396,7 @@ class HealthTriagePipelineResult:
     final_schema_recovery_attempted: bool = False
     pre_recovery_output: AgentOutput | None = None
     pre_recovery_violations: tuple[Violation, ...] = ()
+    input_lex_enrich: InputLexEnrichResult | None = None
 
     @property
     def rule_hits(self) -> tuple[str, ...]:
