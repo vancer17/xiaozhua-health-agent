@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from xiaozhua_health_agent.api import HealthApiSettings, create_app
 from xiaozhua_health_agent.copy import load_copy_knowledge_bundle
+from xiaozhua_health_agent.pipeline.pipeline_types import HealthTriagePipelineOptions
 from xiaozhua_health_agent.eval import (
     OutputValidationMode,
     load_health_triage_dataset,
@@ -56,9 +57,16 @@ def api_app(knowledge_bundle: object) -> FastAPI:
         preload_copy_bundle=False,
         internal_prefix="/internal",
     )
+    # 单测须与本地 .env 解耦；默认机械路径不启用 enrich，避免 readyz 依赖词表预加载。
+    pipeline_options = HealthTriagePipelineOptions(
+        input_lex_enabled=False,
+        load_default_copy_bundle=False,
+        load_default_input_lex_bundle=False,
+    )
     return create_app(
         settings=settings,
         copy_bundle=knowledge_bundle,  # type: ignore[arg-type]
+        pipeline_options=pipeline_options,
         skip_lifespan=True,
     )
 
@@ -90,6 +98,7 @@ def test_readyz_returns_ready_when_bundle_injected(client: TestClient) -> None:
     payload = response.json()
     assert payload["ready"] is True
     assert payload["copyBundleReady"] is True
+    assert payload["inputLexBundleReady"] is True
 
 
 def test_post_health_emergency_case_returns_output_schema(
