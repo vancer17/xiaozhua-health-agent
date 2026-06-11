@@ -28,6 +28,7 @@ from xiaozhua_health_agent.pipeline.batch import (
 )
 from xiaozhua_health_agent.pipeline.health_triage import (
     DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS,
+    default_health_triage_pipeline_options,
     make_health_triage_output_provider,
     run_health_triage,
     run_health_triage_async,
@@ -144,6 +145,7 @@ __all__ = [
     # --- 常量 / 类型 ---
     "DEFAULT_DRAFT_RETRY_OPTIONS",
     "DEFAULT_HEALTH_TRIAGE_PIPELINE_OPTIONS",
+    "default_health_triage_pipeline_options",
     "DRAFT_RETRY_SCHEMA_VERSION",
     "DraftGeneratorKind",
     "DraftGeneratorKindLiteral",
