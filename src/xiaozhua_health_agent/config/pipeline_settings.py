@@ -47,6 +47,10 @@ class XiaozhuaPipelineSettings(BaseSettings):
     :vartype load_default_synonym_map: bool
     :ivar enforce_forced_mentions: ``FORCED_MENTION_MISSING`` 是否拉低 guard passed。
     :vartype enforce_forced_mentions: bool
+    :ivar input_lex_enabled: 是否在 ``parse_input`` 之前执行 KB-INPUT-LEX enrich。
+    :vartype input_lex_enabled: bool
+    :ivar load_default_input_lex_bundle: enrich 时是否在未注入 bundle 的情况下加载默认词表。
+    :vartype load_default_input_lex_bundle: bool
     """
 
     model_config = SettingsConfigDict(
@@ -96,6 +100,14 @@ class XiaozhuaPipelineSettings(BaseSettings):
         default=False,
         description="mustMention 类 MED 违规是否阻断 guard。",
     )
+    input_lex_enabled: bool = Field(
+        default=False,
+        description="启用 KB-INPUT-LEX enrich（parse 之前口语补全）。",
+    )
+    load_default_input_lex_bundle: bool = Field(
+        default=True,
+        description="enrich 时自动加载默认 KB-INPUT-LEX 制品。",
+    )
 
     def to_pipeline_options(self) -> HealthTriagePipelineOptions:
         """映射为 ``HealthTriagePipelineOptions``。
@@ -124,6 +136,8 @@ class XiaozhuaPipelineSettings(BaseSettings):
             enable_merge_fallback=self.enable_merge_fallback,
             enable_final_schema_recovery=self.enable_final_schema_recovery,
             skip_merge_ready_check=self.skip_merge_ready_check,
+            input_lex_enabled=self.input_lex_enabled,
+            load_default_input_lex_bundle=self.load_default_input_lex_bundle,
         )
 
 

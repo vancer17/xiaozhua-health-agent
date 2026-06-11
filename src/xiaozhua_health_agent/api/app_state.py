@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from xiaozhua_health_agent.copy import CopyKnowledgeBundle
+from xiaozhua_health_agent.input_lex import InputLexBundle
 from xiaozhua_health_agent.config import get_default_health_triage_pipeline_options
 from xiaozhua_health_agent.pipeline import HealthTriagePipelineOptions
 
@@ -29,6 +30,10 @@ class HealthApiAppState:
     :vartype startup_error: str | None
     :ivar intelligent_enabled: 是否暴露 ``POST /intelligent`` 占位端点。
     :vartype intelligent_enabled: bool
+    :ivar input_lex_bundle: 预加载的 KB-INPUT-LEX 词表；``None`` 时由 enrich 运行期加载。
+    :vartype input_lex_bundle: InputLexBundle | None
+    :ivar input_lex_bundle_ready: 词表是否已就绪（预加载完成或显式注入）。
+    :vartype input_lex_bundle_ready: bool
     """
 
     pipeline_options: HealthTriagePipelineOptions = field(
@@ -36,6 +41,8 @@ class HealthApiAppState:
     )
     copy_bundle: CopyKnowledgeBundle | None = None
     copy_bundle_ready: bool = False
+    input_lex_bundle: InputLexBundle | None = None
+    input_lex_bundle_ready: bool = False
     service_ready: bool = False
     startup_error: str | None = None
     intelligent_enabled: bool = True
@@ -48,20 +55,17 @@ class HealthApiAppState:
         :returns: 供 ``run_health_triage_async`` 使用的有效配置。
         :rtype: HealthTriagePipelineOptions
         """
-        if self.copy_bundle is None:
-            return self.pipeline_options
-        return HealthTriagePipelineOptions(
-            mode=self.pipeline_options.mode,
-            copy_bundle=self.copy_bundle,
-            load_default_copy_bundle=False,
-            mechanical_options=self.pipeline_options.mechanical_options,
-            skip_final_schema_check=self.pipeline_options.skip_final_schema_check,
-            guard_mode=self.pipeline_options.guard_mode,
-            guard_options=self.pipeline_options.guard_options,
-            skip_content_guard=self.pipeline_options.skip_content_guard,
-            retry_options=self.pipeline_options.retry_options,
-            enable_merge_fallback=self.pipeline_options.enable_merge_fallback,
-            enable_final_schema_recovery=self.pipeline_options.enable_final_schema_recovery,
-            skip_merge_ready_check=self.pipeline_options.skip_merge_ready_check,
-            merge_ready_options=self.pipeline_options.merge_ready_options,
-        )
+        effective = self.pipeline_options
+        if self.copy_bundle is not None:
+            effective = replace(
+                effective,
+                copy_bundle=self.copy_bundle,
+                load_default_copy_bundle=False,
+            )
+        if self.input_lex_bundle is not None:
+            effective = replace(
+                effective,
+                input_lex_bundle=self.input_lex_bundle,
+                load_default_input_lex_bundle=False,
+            )
+        return effective

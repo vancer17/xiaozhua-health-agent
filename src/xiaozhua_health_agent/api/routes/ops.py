@@ -59,14 +59,28 @@ def build_ops_router() -> APIRouter:
         :returns: 200 就绪或 503 未就绪 JSON 响应。
         :rtype: JSONResponse
         """
-        ready = app_state.service_ready and app_state.startup_error is None
+        input_lex_required = app_state.pipeline_options.input_lex_enabled
+        input_lex_ready = (
+            app_state.input_lex_bundle_ready
+            if input_lex_required
+            else True
+        )
+        ready = (
+            app_state.service_ready
+            and app_state.startup_error is None
+            and input_lex_ready
+        )
         message = app_state.startup_error or ""
         if not ready and not message:
-            message = "服务尚未完成启动。"
+            if input_lex_required and not input_lex_ready:
+                message = "KB-INPUT-LEX 词表尚未就绪。"
+            else:
+                message = "服务尚未完成启动。"
 
         payload = ReadinessResponse(
             ready=ready,
             copyBundleReady=app_state.copy_bundle_ready,
+            inputLexBundleReady=input_lex_ready,
             message=message,
         )
         status_code = (

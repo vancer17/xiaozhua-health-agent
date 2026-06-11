@@ -12,6 +12,7 @@ from xiaozhua_health_agent.config.path_settings import (
 )
 from xiaozhua_health_agent.paths import (
     default_cases_path,
+    default_input_lex_path,
     default_kb_tpl_config_dir,
     default_triage_core_path,
     project_root,
@@ -31,6 +32,7 @@ def test_default_paths_resolve_under_package_root() -> None:
     root = project_root()
     assert default_cases_path() == root / "docs/cases/health_triage_cases.v1.json"
     assert default_kb_tpl_config_dir() == root / "assets/kb-tpl/config"
+    assert default_input_lex_path() == root / "assets/kb-input-lex/input-lex.v1.json"
 
 
 def test_kb_tpl_dir_legacy_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

@@ -782,6 +782,10 @@ def _resolve_pipeline_options(
         enable_final_schema_recovery=base.enable_final_schema_recovery,
         skip_merge_ready_check=base.skip_merge_ready_check,
         merge_ready_options=base.merge_ready_options,
+        input_lex_enabled=base.input_lex_enabled,
+        input_lex_bundle=base.input_lex_bundle,
+        load_default_input_lex_bundle=base.load_default_input_lex_bundle,
+        input_lex_enrich_options=base.input_lex_enrich_options,
     )
     if copy_bundle is not None:
         return effective.with_copy_bundle(copy_bundle)
