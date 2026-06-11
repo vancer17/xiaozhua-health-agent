@@ -5,7 +5,13 @@
 
 from __future__ import annotations
 
-from xiaozhua_health_agent.triage.triage_types import TriageRule
+from xiaozhua_health_agent.triage.triage_types import RuleThen, TriageRule
+
+
+def _then(payload: dict[str, object]) -> RuleThen:
+    """将规则 emit 字典校验为 ``RuleThen``（mypy 友好）。"""
+    return RuleThen.model_validate(payload)
+
 
 NOT_EXERCISE = {"not": {"fact": "hasExerciseContext"}}
 RESTING = {"fact": "isResting"}
@@ -64,6 +70,14 @@ def _ctx02_when() -> dict:
             RESTING,
             NOT_EXERCISE,
             {"any": [branch_a, branch_b]},
+            {
+                "not": {
+                    "all": [
+                        {"fact": "hasChronicHeart"},
+                        {"fact": "hasRestingTachypnea"},
+                    ],
+                },
+            },
         ],
     }
 
@@ -75,11 +89,13 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
         layer="EMG",
         name="用户报告抽搐",
         when={"field": "userReport.seizure", "eq": True},
-        then={
-            "risk": "emergency",
-            "primaryFlag": "EMERGENCY_SEIZURE",
-        },
-        case_ids=["emergency_seizure"],
+        then=_then(
+            {
+                "risk": "emergency",
+                "primaryFlag": "EMERGENCY_SEIZURE",
+            }
+        ),
+        caseIds=["emergency_seizure"],
     ),
     TriageRule(
         id="EMG-02",
@@ -91,22 +107,26 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"derived": "upstreamRisk", "eq": "emergency"},
             ],
         },
-        then={
-            "risk": "emergency",
-            "primaryFlag": "EMERGENCY_RESPIRATORY",
-        },
-        case_ids=["emergency_breathing_difficulty"],
+        then=_then(
+            {
+                "risk": "emergency",
+                "primaryFlag": "EMERGENCY_RESPIRATORY",
+            }
+        ),
+        caseIds=["emergency_breathing_difficulty"],
     ),
     TriageRule(
         id="EMG-03",
         layer="EMG",
         name="严重创伤",
         when={"field": "userReport.trauma", "eq": True},
-        then={
-            "risk": "emergency",
-            "primaryFlag": "EMERGENCY_TRAUMA",
-        },
-        case_ids=[],
+        then=_then(
+            {
+                "risk": "emergency",
+                "primaryFlag": "EMERGENCY_TRAUMA",
+            }
+        ),
+        caseIds=[],
     ),
     TriageRule(
         id="EMG-04",
@@ -129,11 +149,13 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 },
             ],
         },
-        then={
-            "risk": "emergency",
-            "primaryFlag": "EMERGENCY_RESPIRATORY",
-        },
-        case_ids=["emergency_breathing_difficulty"],
+        then=_then(
+            {
+                "risk": "emergency",
+                "primaryFlag": "EMERGENCY_RESPIRATORY",
+            }
+        ),
+        caseIds=["emergency_breathing_difficulty"],
     ),
     # --- DQ ---
     TriageRule(
@@ -146,24 +168,28 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"fact": "vitalsCoreMissing"},
             ],
         },
-        then={
-            "risk": "watch",
-            "riskFloor": "watch",
-            "primaryFlag": "DATA_MISSING",
-        },
-        case_ids=["missing_vitals"],
+        then=_then(
+            {
+                "risk": "watch",
+                "riskFloor": "watch",
+                "primaryFlag": "DATA_MISSING",
+            }
+        ),
+        caseIds=["missing_vitals"],
     ),
     TriageRule(
         id="DQ-02",
         layer="DQ",
         name="数据过期门禁",
         when={"field": "device.dataQuality", "eq": "stale"},
-        then={
-            "risk": "watch",
-            "riskFloor": "watch",
-            "primaryFlag": "DATA_STALE",
-        },
-        case_ids=["stale_device_data"],
+        then=_then(
+            {
+                "risk": "watch",
+                "riskFloor": "watch",
+                "primaryFlag": "DATA_STALE",
+            }
+        ),
+        caseIds=["stale_device_data"],
     ),
     TriageRule(
         id="DQ-03",
@@ -171,7 +197,7 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
         name="部分数据（零 emit）",
         when={"field": "device.dataQuality", "eq": "partial"},
         then=None,
-        case_ids=[
+        caseIds=[
             "limping_pain_watch",
             "emergency_seizure",
             "senior_cat_low_energy",
@@ -185,8 +211,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
         priority=10,
         name="安静态高热",
         when=_ctx01_when(),
-        then={"risk": "warning", "primaryFlag": "FEVER_RESTING"},
-        case_ids=["high_fever_resting"],
+        then=_then({"risk": "warning", "primaryFlag": "FEVER_RESTING"}),
+        caseIds=["high_fever_resting"],
     ),
     TriageRule(
         id="CTX-02",
@@ -194,8 +220,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
         priority=20,
         name="安静态呼吸偏高",
         when=_ctx02_when(),
-        then={"risk": "warning", "primaryFlag": "RESP_RESTING"},
-        case_ids=["respiratory_rate_high_resting"],
+        then=_then({"risk": "warning", "primaryFlag": "RESP_RESTING"}),
+        caseIds=["respiratory_rate_high_resting"],
     ),
     TriageRule(
         id="CTX-03",
@@ -208,8 +234,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"fact": "hasRestingTachycardia"},
             ],
         },
-        then={"risk": "warning", "primaryFlag": "HR_RESTING_CHRONIC"},
-        case_ids=["heart_rate_high_resting_warning"],
+        then=_then({"risk": "warning", "primaryFlag": "HR_RESTING_CHRONIC"}),
+        caseIds=["heart_rate_high_resting_warning"],
     ),
     TriageRule(
         id="CTX-04",
@@ -222,8 +248,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"fact": "hasRestingTachypnea"},
             ],
         },
-        then={"risk": "warning", "primaryFlag": "CHRONIC_HEART_RESP"},
-        case_ids=["chronic_heart_resp_warning"],
+        then=_then({"risk": "warning", "primaryFlag": "CHRONIC_HEART_RESP"}),
+        caseIds=["chronic_heart_resp_warning"],
     ),
     TriageRule(
         id="CTX-05",
@@ -236,8 +262,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"fact": "deviceShowsRestingFever"},
             ],
         },
-        then={"risk": "warning", "primaryFlag": "USER_DEVICE_CONFLICT"},
-        case_ids=["conflict_user_normal_sensor_fever"],
+        then=_then({"risk": "warning", "primaryFlag": "USER_DEVICE_CONFLICT"}),
+        caseIds=["conflict_user_normal_sensor_fever"],
     ),
     TriageRule(
         id="CTX-06",
@@ -245,8 +271,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
         priority=60,
         name="反复呕吐",
         when={"field": "userReport.vomiting", "eq": "repeated"},
-        then={"risk": "warning", "primaryFlag": "REPEATED_VOMITING"},
-        case_ids=["persistent_vomiting_warning"],
+        then=_then({"risk": "warning", "primaryFlag": "REPEATED_VOMITING"}),
+        caseIds=["persistent_vomiting_warning"],
     ),
     TriageRule(
         id="CTX-07",
@@ -261,8 +287,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"fact": "hasChronicConditions"},
             ],
         },
-        then={"risk": "warning", "primaryFlag": "SENIOR_DECLINE"},
-        case_ids=["senior_cat_low_energy"],
+        then=_then({"risk": "warning", "primaryFlag": "SENIOR_DECLINE"}),
+        caseIds=["senior_cat_low_energy"],
     ),
     TriageRule(
         id="CTX-08",
@@ -277,8 +303,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"field": "userReport.energy", "in": ["lower", "very_low"]},
             ],
         },
-        then={"risk": "warning", "primaryFlag": "PUPPY_FEVER"},
-        case_ids=["puppy_fever_high_risk"],
+        then=_then({"risk": "warning", "primaryFlag": "PUPPY_FEVER"}),
+        caseIds=["puppy_fever_high_risk"],
     ),
     TriageRule(
         id="CTX-09a",
@@ -292,8 +318,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"signal": {"id": "temperature", "riskEq": "watch"}},
             ],
         },
-        then={"risk": "watch", "primaryFlag": "POST_EXERCISE"},
-        case_ids=["mild_fever_after_exercise"],
+        then=_then({"risk": "watch", "primaryFlag": "POST_EXERCISE"}),
+        caseIds=["mild_fever_after_exercise"],
     ),
     TriageRule(
         id="CTX-09b",
@@ -306,8 +332,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"signal": {"id": "heart_rate", "riskEq": "watch"}},
             ],
         },
-        then={"risk": "watch", "primaryFlag": "POST_EXERCISE"},
-        case_ids=["heart_rate_high_after_play"],
+        then=_then({"risk": "watch", "primaryFlag": "POST_EXERCISE"}),
+        caseIds=["heart_rate_high_after_play"],
     ),
     TriageRule(
         id="CTX-10",
@@ -320,8 +346,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"fact": "hasStressContext"},
             ],
         },
-        then={"risk": "watch", "primaryFlag": "HRV_STRESS"},
-        case_ids=["hrv_stress_watch"],
+        then=_then({"risk": "watch", "primaryFlag": "HRV_STRESS"}),
+        caseIds=["hrv_stress_watch"],
     ),
     TriageRule(
         id="CTX-11",
@@ -335,8 +361,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"signal": {"id": "pain", "riskGte": "watch"}},
             ],
         },
-        then={"risk": "watch", "primaryFlag": "LIMPING_PAIN"},
-        case_ids=["limping_pain_watch"],
+        then=_then({"risk": "watch", "primaryFlag": "LIMPING_PAIN"}),
+        caseIds=["limping_pain_watch"],
     ),
     TriageRule(
         id="CTX-12",
@@ -349,8 +375,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"fact": "hasSlowRecoveryContext"},
             ],
         },
-        then={"risk": "watch", "primaryFlag": "SLOW_RECOVERY"},
-        case_ids=["recovery_slow_watch"],
+        then=_then({"risk": "watch", "primaryFlag": "SLOW_RECOVERY"}),
+        caseIds=["recovery_slow_watch"],
     ),
     TriageRule(
         id="CTX-13",
@@ -363,8 +389,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"field": "userReport.energy", "eq": "normal"},
             ],
         },
-        then={"risk": "watch", "primaryFlag": "MILD_DIARRHEA"},
-        case_ids=["mild_diarrhea_watch"],
+        then=_then({"risk": "watch", "primaryFlag": "MILD_DIARRHEA"}),
+        caseIds=["mild_diarrhea_watch"],
     ),
     TriageRule(
         id="CTX-14",
@@ -377,8 +403,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"field": "userReport.energy", "eq": "lower"},
             ],
         },
-        then={"risk": "watch", "primaryFlag": "POST_VACCINE"},
-        case_ids=["post_vaccine_tired_watch"],
+        then=_then({"risk": "watch", "primaryFlag": "POST_VACCINE"}),
+        caseIds=["post_vaccine_tired_watch"],
     ),
     TriageRule(
         id="CTX-15",
@@ -395,8 +421,8 @@ TRIAGE_RULES_V1: tuple[TriageRule, ...] = (
                 {"not": {"field": "userReport.vomiting", "eq": "repeated"}},
             ],
         },
-        then={"risk": "normal", "primaryFlag": "NORMAL_DAILY"},
-        case_ids=["normal_dog_daily_check"],
+        then=_then({"risk": "normal", "primaryFlag": "NORMAL_DAILY"}),
+        caseIds=["normal_dog_daily_check"],
     ),
 )
 

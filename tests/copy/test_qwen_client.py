@@ -88,7 +88,9 @@ async def test_create_chat_completion_success(
     assert response.usage.total_tokens == 30
     assert response.finish_reason == "stop"
 
-    call_kwargs: dict[str, Any] = mock_openai_client.chat.completions.create.await_args.kwargs
+    call_kwargs: dict[str, Any] = (
+        mock_openai_client.chat.completions.create.await_args.kwargs
+    )
     assert call_kwargs["model"] == "qwen-plus"
     assert call_kwargs["response_format"] == {"type": "json_object"}
     assert len(call_kwargs["messages"]) == 2

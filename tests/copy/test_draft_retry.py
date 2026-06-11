@@ -183,3 +183,39 @@ async def test_run_draft_llm_exhausted_falls_back_to_mechanical(
     assert result.attempt_count == 2
     assert result.failure_kind == DraftRetryFailureKind.ACTION_MISMATCH
     assert result.mechanical_result is not None
+
+
+@pytest.mark.asyncio
+async def test_run_draft_llm_accepts_initial_messages(
+    mild_fever_resolved: object,
+) -> None:
+    """``initial_messages`` 应替代默认 system/user 作为首轮对话。"""
+    resolved = mild_fever_resolved
+    payload = _minimal_draft_payload(resolved)
+    seen_roles: list[str] = []
+
+    async def completion_factory(
+        request: QwenChatCompletionRequest,
+    ) -> QwenChatCompletionResponse:
+        seen_roles.extend(message.role for message in request.messages)
+        return _make_completion(json.dumps(payload, ensure_ascii=False))
+
+    from xiaozhua_health_agent.copy import QwenChatMessage
+
+    custom_messages = (
+        QwenChatMessage(role="system", content="custom-system"),
+        QwenChatMessage(role="user", content="custom-user"),
+        QwenChatMessage(role="assistant", content='{"title":"x"}'),
+        QwenChatMessage(role="user", content="请修正"),
+    )
+    client = _StubQwenClient()
+    result = await run_draft_llm_with_retry_async(
+        resolved=resolved,  # type: ignore[arg-type]
+        qwen_client=client,
+        options=DraftGenerationRetryOptions(max_attempts=1),
+        completion_factory=completion_factory,
+        initial_messages=custom_messages,
+    )
+
+    assert result.passed is True
+    assert seen_roles == ["system", "user", "assistant", "user"]
